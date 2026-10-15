@@ -1,0 +1,14 @@
+.env
+data/
+*.db
+*.db-*
+*.lock
+__pycache__/
+tests/
+docs/
+.git/
+tools/
+.pi/
+.DS_Store
+*.md
+!README.md

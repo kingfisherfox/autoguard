@@ -1,0 +1,100 @@
+// Autoguard SQLite ($AUTOGUARD_DB, default /data/autoguard.db). Owner: autoguard/db.py — CREATE IF NOT EXISTS +
+// additive MIGRATIONS on every connect. File mode 600: holds API keys (settings) and password hashes (users).
+
+Project autoguard { database_type: 'SQLite' }
+
+Table autoguard.settings {
+  key text [pk, note: 'see settings.DEFAULTS; env vars override (settings.ENV)']
+  value text [not null, note: 'secrets: nextdns_api_key, llm_api_key, api_token — never rendered']
+}
+
+Table autoguard.users {
+  id integer [pk, increment]
+  username text [not null, unique, note: 'COLLATE NOCASE']
+  pw_hash text [not null, note: 'pbkdf2_sha256$iter$salt$hash']
+  created_at text [not null]
+  last_login text
+}
+
+Table autoguard.sessions {
+  token_hash text [pk, note: 'sha256 of the cookie token — raw token never stored']
+  user_id integer [not null, ref: > autoguard.users.id, note: 'ON DELETE CASCADE']
+  csrf text [not null, note: 'per-session CSRF token embedded in every form']
+  created_at text [not null]
+  expires_at text [not null, note: '30 days']
+}
+
+Table autoguard.topics {
+  id text [pk, note: 'uncensored_ai | stranger_chat | redpill | adult (seed, adult inactive); parent-editable']
+  label text [not null]
+  description text [not null, note: 'fed verbatim to the LLM: what counts and what does NOT']
+  active integer [not null, default: 1]
+}
+
+Table autoguard.profiles {
+  id text [pk, note: 'NextDNS profile id (one per child device)']
+  name text [not null]
+  enabled integer [not null, default: 0, note: '1 = parent ticked it; only enabled profiles are read/written']
+  watermark text [note: 'newest log timestamp read; next pull starts after it']
+  seen_at text
+}
+
+Table autoguard.domains {
+  domain text [pk, note: 'NextDNS root, or tenant.<shared-suffix>']
+  first_seen text
+  last_seen text
+  hits integer [not null, default: 0]
+  resolved_hits integer [not null, default: 0, note: 'queries NOT blocked; 0 => never classified']
+  bedtime_hits integer [not null, default: 0, note: 'inside settings bedtime window, settings timezone']
+  profiles text [not null, default: '[]', note: 'JSON array of profile ids seen on']
+  samples text [not null, default: '[]', note: 'JSON array of queried hostnames (max 8)']
+  title text
+  description text
+  fetch_error text
+  fetched_at text
+  verdict text [not null, default: 'pending', note: 'pending|skip|clean|review|block|owner_ok|owner_block|ignored|imported']
+  kind text [note: 'website|infrastructure — parents only see websites outside Blocked/To check']
+  kind_by text [note: 'ai|guess — guesses on clean/imported rows are re-asked']
+  last_blocked integer [not null, default: 0, note: '1 = newest lookup was blocked by NextDNS rules → Hidden']
+  topic text [ref: > autoguard.topics.id]
+  confidence real
+  reason text
+  model text
+  decided_at text
+}
+
+Table autoguard.blocks {
+  domain text [ref: > autoguard.domains.domain]
+  profile text [ref: > autoguard.profiles.id]
+  state text [not null, note: 'blocked|unblocked']
+  source text [not null, note: 'auto|owner|nextdns — owner rows never overwritten by scans; nextdns rows mirror NextDNS']
+  updated_at text [not null]
+  indexes { (domain, profile) [pk] }
+}
+
+Table autoguard.runs {
+  id integer [pk, increment]
+  trigger text [note: 'schedule|dashboard|first scan|manual']
+  started text
+  finished text
+  status text [note: 'running|ok|ai_busy|partial|llm_error|failed|interrupted']
+  phase text [note: 'live progress text while running']
+  logs_read integer
+  new_domains integer
+  classified integer
+  blocked integer
+  held integer
+  writes integer
+  errors integer
+  note text
+}
+
+Table autoguard.actions {
+  id integer [pk, increment]
+  ts text [not null]
+  actor text [not null, note: 'autoguard | username']
+  action text [not null, note: 'block|unblock|mark_ok|fine_add|unfine|bulk_ok|hide|unhide|topic|devices|settings|user_created|setup_finished|...']
+  domain text
+  profile text
+  detail text
+}

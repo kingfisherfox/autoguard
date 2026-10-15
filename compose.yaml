@@ -1,0 +1,20 @@
+# Autoguard — `docker compose up -d`, then open http://<this-server>:8095 and follow the setup wizard.
+# Everything (keys, users, settings) is entered in the browser and stored in the `autoguard-data` volume.
+# A .env file is optional — see .env.example for headless / secrets-manager setups.
+services:
+  autoguard:
+    build: .
+    image: autoguard:local
+    restart: unless-stopped
+    ports:
+      - "${AUTOGUARD_PORT:-8095}:8095"
+    volumes:
+      - autoguard-data:/data
+    env_file:
+      - path: .env
+        required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # lets the Ollama preset reach a model running on this server
+
+volumes:
+  autoguard-data:
