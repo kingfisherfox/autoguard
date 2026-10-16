@@ -59,7 +59,7 @@ Parents only see what might be a problem. Ad servers, app back-ends and load bal
 | Page | For |
 |---|---|
 | **Home** | Is it working, when it checks next, anything that needs you. |
-| **Blocked** | Every blocked site with what it is and why, grouped and filterable by device; one button per device to block or allow it there. |
+| **Blocked** | Every blocked site with what it is and why, grouped. Unblock everywhere, or pick a device to block/unblock it there only. |
 | **To check** | Possible problems the AI wasn't sure about: *Block it* or *It's fine*. |
 | **Other sites** | Sites judged fine. Optional reading; one click clears a page. |
 | **Fine sites** | Sites you trust. Never blocked, never sent to the AI. |

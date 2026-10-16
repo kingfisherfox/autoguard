@@ -61,7 +61,8 @@ everything configured in a browser wizard. Human docs: `README.md` + `docs/guide
 - Styling: Atlassian Design System light tokens, one `--ds-*` CSS variable per token in `views.CSS` (the only home
   for colours/spacing). Square corners everywhere (owner decision 2026-10-16; a test checks `border-radius` is 0).
 - Every list page goes through `views.listing` (search + device + group filters, grouped rows); add list pages there,
-  not with their own queries. Device = "looked it up" (`domains.profiles`) except Blocked = "blocked on" (`blocks`).
+  not with their own queries. Device = "looked it up" (`domains.profiles`) and narrows the list; on Blocked the device is
+  a point of view (`narrow=False`): the master list with that device's state and one Block/Unblock for it.
 - Secrets: only in the DB settings table or env; never rendered (masked last 4), never logged, never in git.
   Tests assert no key appears in any page.
 - The AI never decides control flow: guardrails + thresholds + cap in code; LLM outage ⇒ `llm_error`, enforcement continues.

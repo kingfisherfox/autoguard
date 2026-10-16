@@ -108,15 +108,12 @@ th:first-child,td:first-child{padding-left:24px}th:last-child,td:last-child{padd
 tbody tr{transition:background-color .1s var(--ds-ease)}tbody tr:hover{background:var(--ds-bg-neutral-subtle-hovered)}tbody tr:last-child td{border-bottom:0}
 tr.grp td{background:var(--ds-surface-sunken);font-size:12px;line-height:16px;font-weight:600;color:var(--ds-text-subtle);padding-top:8px;padding-bottom:8px}
 tr.grp td span{margin-left:8px;font-weight:400;color:var(--ds-text-subtlest)}
-td.dom{min-width:220px;max-width:420px}td.devs{min-width:190px}.site{display:flex;gap:12px;align-items:flex-start}
+td.dom{min-width:240px;max-width:460px}.site{display:flex;gap:12px;align-items:flex-start}
 .av{width:32px;height:32px;flex:none;display:grid;place-items:center;font-weight:600;text-transform:uppercase;color:hsl(var(--h) 45% 30%);background:hsl(var(--h) 60% 92%)}
 .sm{min-width:0}.dn{font-weight:600;overflow-wrap:anywhere}.tt{color:var(--ds-text-subtle)}
 .ds{color:var(--ds-text-subtlest);font-size:12px;line-height:16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ai{color:var(--ds-text-discovery);font-size:11px;margin-right:4px}.mut{color:var(--ds-text-subtlest);font-size:12px;line-height:16px}
 .empty{color:var(--ds-text-subtlest);padding:24px 0 8px;text-align:center}
-.pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;margin:0 4px 4px 0;font:inherit;font-size:12px;font-weight:500;border:0;cursor:pointer;transition:background-color .1s var(--ds-ease)}
-.on-b{color:var(--ds-text-danger);background:var(--ds-bg-danger)}.on-b:hover{background:var(--ds-bg-danger-hovered)}
-.off-b{color:var(--ds-text-success);background:var(--ds-bg-success)}.off-b:hover{background:var(--ds-bg-success-hovered)}
 .tag,.st{display:inline-block;padding:0 4px;font-size:11px;line-height:16px;font-weight:700;text-transform:uppercase;white-space:nowrap;vertical-align:1px}
 .tag{background:var(--ds-bg-danger);color:var(--ds-text-danger)}.tag.nd,.st{background:var(--ds-bg-neutral);color:var(--ds-text-subtle)}
 .st.ok{background:var(--ds-bg-success);color:var(--ds-text-success)}.st.bad{background:var(--ds-bg-danger);color:var(--ds-text-danger)}
@@ -245,7 +242,7 @@ CAT_RANK = "CASE category " + " ".join(f"WHEN '{c}' THEN {i}" for i, (c, _, _) i
 # Blocked passes its own (= blocked on that device).
 VISITED = lambda pid: ("EXISTS (SELECT 1 FROM json_each(domains.profiles) WHERE value=?)", (pid,))
 
-def listing(ctx, where, wargs=(), order="last_seen DESC", on=VISITED, dev_label="Used on"):
+def listing(ctx, where, wargs=(), order="last_seen DESC", on=VISITED, dev_label="Used on", narrow=True):
     """One page of `domains` rows matching `where`, narrowed by search (address, page title, AI one-liner), device
     (?device=) and group (?cat=). Rows are ordered group-first so a page reads as sections. Per-device and per-group
     counts feed the chips; each count respects the other filters except its own."""
@@ -255,7 +252,7 @@ def listing(ctx, where, wargs=(), order="last_seen DESC", on=VISITED, dev_label=
     profs = devices(con); dev = ctx["q"].get("device", ""); dev = dev if dev in {p["id"] for p in profs} else ""
     n = lambda sql, a: con.execute(f"SELECT count(*) {sql}", a).fetchone()[0]
     per = {p["id"]: n(f"{base} AND {on(p['id'])[0]}", (*args, *on(p["id"])[1])) for p in profs} if len(profs) > 1 else {}
-    if dev: dsql, dargs = on(dev); base, args = f"{base} AND {dsql}", (*args, *dargs)
+    if dev and narrow: dsql, dargs = on(dev); base, args = f"{base} AND {dsql}", (*args, *dargs)   # narrow=False: device = point of view
     counts = {(r[0] or "unsorted"): r[1] for r in con.execute(f"SELECT category, count(*) {base} GROUP BY category", args)}
     cat = ctx["q"].get("cat", ""); cat = cat if cat in counts else ""
     cw, ca = ("", ()) if not cat else (" AND category IS NULL", ()) if cat == "unsorted" else (" AND category=?", (cat,))
@@ -334,15 +331,6 @@ def visited(r):
     n, b = r["hits"], r["bedtime_hits"]
     return f'<td style="white-space:nowrap">{ago(r["last_seen"])}<div class="mut">{n} time{"s" if n != 1 else ""}{f" · {b} at night" if b else ""}</div></td>'
 
-def pills(ctx, d, profs, state, back):
-    out = []
-    for p in profs:
-        on = state.get((d, p["id"])) == "blocked"
-        out.append(button(ctx, "/action", f'{"⛔" if on else "✓"} {esc(p["name"])}',
-                          [("op", "unblock" if on else "block"), ("domain", d), ("profile", p["id"]), ("back", back)],
-                          f'pill {"on-b" if on else "off-b"}', f'{"Blocked" if on else "Allowed"} on {p["name"]} — click to {"allow" if on else "block"} it there'))
-    return "".join(out)
-
 # ── home ────────────────────────────────────────────────────────────────────
 PLAIN = {"ok": "Done", "ai_busy": "AI was busy", "llm_error": "AI problem", "failed": "Failed", "partial": "Partly done", "running": "Running", "interrupted": "Interrupted"}
 
@@ -389,36 +377,56 @@ def overview(ctx):
 BLOCKED_TABS = [("all", "Everything"), ("auto", "Found by Autoguard"), ("owner", "Blocked by you"), ("nextdns", "On your NextDNS list")]
 
 def blocked(ctx):
+    """All devices: the master list, one action (Unblock everywhere). One device: the same list as it stands on that
+    device — each row Unblock or Block for that device only, so an unblocked site can be re-blocked from here."""
     con = ctx["con"]; profs, tl = devices(con), topic_labels(con)
     show = ctx["q"].get("show", "all"); show = show if show in dict(BLOCKED_TABS) else "all"
     cond, args = ("", []) if show == "all" else (" AND b.source=?", [show])
     on = lambda pid: (f"EXISTS (SELECT 1 FROM blocks b WHERE b.domain=domains.domain AND b.state='blocked' AND b.profile=?{cond})", (pid, *args))
     L = listing(ctx, f"EXISTS (SELECT 1 FROM blocks b WHERE b.domain=domains.domain AND b.state='blocked'{cond})", args,
-                "COALESCE(decided_at, first_seen) DESC, domain", on=on, dev_label="Blocked on")
-    ds = [r["domain"] for r in L["rows"]]
+                "COALESCE(decided_at, first_seen) DESC, domain", on=on, dev_label="Device", narrow=False)
+    ds, dev = [r["domain"] for r in L["rows"]], L["dev"]
     st = con.execute(f"SELECT domain, profile, state, source FROM blocks WHERE domain IN ({','.join('?' * len(ds))})", ds).fetchall() if ds else []
-    state_ = {(r["domain"], r["profile"]): r["state"] for r in st}
+    on_dev = {(r["domain"], r["profile"]) for r in st if r["state"] == "blocked"}
     srcs = {}
     for r in st:
         if r["state"] == "blocked": srcs.setdefault(r["domain"], set()).add(r["source"])
     src = lambda d: next((s for s in ("auto", "owner", "nextdns") if s in srcs.get(d, ())), "auto")
+    names = {p["id"]: p["name"] for p in profs}
     allp, back, keep = [("profile", p["id"]) for p in profs], here(ctx), {"show": show}
     def row(r):
-        return (f'<tr>{site(r)}{why(r, tl, src(r["domain"]))}{visited(r)}<td class="devs">{pills(ctx, r["domain"], profs, state_, back)}</td>'
-                f'<td>{button(ctx, "/action", "Allow everywhere", [("op", "unblock"), ("domain", r["domain"]), ("back", back)] + allp, "small")}</td></tr>')
-    body = [head("Blocked sites", "These sites can’t be opened on your children’s devices. Each device is a button: "
-                 "<b>⛔ red = blocked there</b>, <b>✓ green = allowed there</b> — click to change it for that device only. "
-                 "Autoguard remembers what you choose."),
-            '<section>', filters("/blocked", L, keep, (show, BLOCKED_TABS)),
-            table(["Site", "Why it’s blocked", "Last visited", "Devices", ""], L, row, "Nothing here."), footer("/blocked", L, keep), "</section>"]
+        d = r["domain"]
+        if dev:
+            here_ = (d, dev) in on_dev
+            state = ('<span class="st bad">Blocked here</span>' if here_ else '<span class="st ok">Allowed here</span>')
+            act = (button(ctx, "/action", "Unblock", [("op", "unblock"), ("domain", d), ("profile", dev), ("back", back)], "ok small",
+                          f"Allow it on {names[dev]} only") if here_ else
+                   button(ctx, "/action", "Block", [("op", "block"), ("domain", d), ("profile", dev), ("back", back)], "danger small",
+                          f"Block it on {names[dev]} again"))
+            return f'<tr>{site(r)}{why(r, tl, src(d))}{visited(r)}<td>{state}</td><td>{act}</td></tr>'
+        off = [names[p] for p in names if (d, p) not in on_dev]
+        note = f'<div class="mut" style="margin-top:4px">Allowed on {esc(", ".join(off))}</div>' if off else ""
+        act = button(ctx, "/action", "Unblock", [("op", "unblock"), ("domain", d), ("back", back)] + allp, "ok small",
+                     "Unblock on every device — it moves to Fine sites")
+        return f'<tr>{site(r)}{why(r, tl, src(d))[:-5]}{note}</td>{visited(r)}<td>{act}</td></tr>'
+    if dev:
+        lead = (f"Everything on the blocked list, as it stands on <b>{esc(names[dev])}</b>. <b>Unblock</b> allows a site on this "
+                "device only; <b>Block</b> blocks it here again. Autoguard remembers what you choose.")
+        cols = ["Site", "Why it’s blocked", "Last visited", f"On {esc(names[dev])}", ""]
+    else:
+        lead = ("These sites can’t be opened on your children’s devices. <b>Unblock</b> allows a site on every device. "
+                "To change one device only, pick it under <b>Device</b>.")
+        cols = ["Site", "Why it’s blocked", "Last visited", ""]
+    body = [head("Blocked sites", lead), '<section>', filters("/blocked", L, keep, (show, BLOCKED_TABS)),
+            table(cols, L, row, "Nothing here."), footer("/blocked", L, keep), "</section>"]
     if show == "nextdns" or (show == "all" and any(src(d) == "nextdns" for d in ds)):
         body.append('<p class="mut" style="margin:-8px 0 18px">“On your NextDNS block list” means it was already blocked in your NextDNS account before Autoguard. '
-                    'Allowing it here removes it from that list too.</p>')
+                    'Unblocking it here removes it from that list too.</p>')
     body.append(f'<section id="add"><h2>Block a site yourself</h2><p class="hint">Type the site’s address, for example <code>badsite.com</code>. '
                 f'Its pages and sub-sites are blocked too.</p>'
-                f'<form method="post" action="/action" class="row">{csrf(ctx)}<input type="hidden" name="op" value="add"><input type="hidden" name="back" value="/blocked">'
+                f'<form method="post" action="/action" class="row">{csrf(ctx)}<input type="hidden" name="op" value="add"><input type="hidden" name="back" value="{esc(back)}">'
                 f'<input type="text" name="domain" placeholder="badsite.com" style="max-width:260px" required>'
-                + "".join(f'<label><input type="checkbox" name="profile" value="{esc(p["id"])}" checked> {esc(p["name"])}</label>' for p in profs)
+                + "".join(f'<label><input type="checkbox" name="profile" value="{esc(p["id"])}" {"checked" if not dev or p["id"] == dev else ""}> {esc(p["name"])}</label>' for p in profs)
                 + '<button class="danger">Block</button></form></section>')
     return layout(ctx, "Blocked", "".join(body), "/blocked")
 

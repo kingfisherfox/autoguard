@@ -44,22 +44,23 @@ Every site that can't be opened on your children's devices, grouped, newest firs
 
 - **Filters** across the top: *Everything*, *Found by Autoguard*, *Blocked by you*, and *On your NextDNS list*
   (sites that were already on your NextDNS block lists).
-- **Blocked on** buttons show what's blocked on one device only, with a count for each (*All devices* shows
-  everything).
+- **Device** buttons switch between the whole family and one device, with how many sites are blocked on each.
 - **Why it's blocked** shows the topic and how sure the AI was (*possibly*, *likely*, *very likely*) with its
-  one-line reason.
+  one-line reason. If a site is allowed on some devices, a grey line says which (*Allowed on Mia's phone*).
 - **Last visited** shows when, how many times, and how many of those were at night (if you set a bedtime).
-- **Devices**: one button per device. **⛔ red** means blocked on that device; **✓ green** means allowed there.
-  Click a button to change just that device.
-- **Allow everywhere** unblocks the site on every device and puts it on your Fine sites, so it's never blocked
-  again.
+- **Unblock** (with *All devices* selected) unblocks the site on every device and puts it on your Fine sites, so
+  it's never blocked again.
+
+**One device at a time.** Pick a device under **Device** and the list shows every blocked site as it stands on
+that device: *Blocked here* or *Allowed here*. **Unblock** allows a site on that device only; **Block** blocks it
+there again. The *Block a site yourself* form then ticks just that device.
 
 ![Unblocked on one device](../images/13-unblock-one-device.png)
 
 Autoguard remembers every choice. If you allow a site on Sam's tablet only, later checks won't block it there again.
 
 **Sites from your NextDNS list.** Autoguard shows what was already on your NextDNS block lists so you can see
-everything in one place. If you change those lists in NextDNS directly, Autoguard follows. Allowing one of them
+everything in one place. If you change those lists in NextDNS directly, Autoguard follows. Unblocking one of them
 here also removes it from NextDNS.
 
 ![Sites already on your NextDNS block list](../images/08-blocked-nextdns.png)

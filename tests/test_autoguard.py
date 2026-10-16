@@ -479,15 +479,22 @@ class Web(Base):
             code, _, html = self.post("/setup", {"step": "nextdns"}, "/setup"); self.assertIn("Kid aaa111", html)
         finally: os.environ.pop("NEXTDNS_API_KEY")
 
-    def test_blocked_sites_can_be_filtered_by_device(self):
-        self.setup_all(); con = self.con()
-        db.ensure_domain(con, "only-a.chat"); db.set_block(con, "only-a.chat", "aaa111", "blocked", "owner")
-        db.ensure_domain(con, "only-b.chat"); db.set_block(con, "only-b.chat", "bbb222", "blocked", "owner"); con.commit()
-        a, b = self.req("/blocked?device=aaa111")[2], self.req("/blocked?device=bbb222")[2]
-        self.assertIn("only-a.chat", a); self.assertNotIn("only-b.chat", a)
-        self.assertIn("only-b.chat", b); self.assertNotIn("only-a.chat", b)
-        both = self.req("/blocked?device=nope")[2]                    # unknown device → everything, not an error
-        self.assertIn("only-a.chat", both); self.assertIn("only-b.chat", both)
+    def test_blocked_list_per_device_offers_one_unblock_or_block_for_that_device(self):
+        # all devices: one Unblock (everywhere), no per-device buttons in the rows.
+        # one device: the same list from that device's point of view — Unblock if blocked there, Block if allowed there,
+        # so a site unblocked on one device can be re-blocked from the same view.
+        self.nd.visit("aaa111", "harpy.chat"); llm.classify = fake_llm({"harpy.chat": ("uncensored_ai", 0.97)}); self.setup_all()
+        rows = lambda html: html.split("<tbody>", 1)[1].split("</tbody>", 1)[0]
+        allv = rows(self.req("/blocked")[2])
+        self.assertEqual(allv.count(">Unblock</button>"), 1); self.assertNotIn(">Block</button>", allv); self.assertNotIn("Kid aaa111", allv)
+        self.post("/action", {"op": "unblock", "domain": "harpy.chat", "profile": "bbb222", "back": "/blocked?device=bbb222"}, "/blocked?device=bbb222")
+        self.assertEqual(self.blocked_on("harpy.chat"), ["aaa111"])
+        b = rows(self.req("/blocked?device=bbb222")[2]); a = rows(self.req("/blocked?device=aaa111")[2])
+        self.assertIn("Allowed here", b); self.assertIn(">Block</button>", b); self.assertIn("Blocked here", a)
+        self.assertIn("Allowed on Kid bbb222", rows(self.req("/blocked")[2]))     # all-devices view says where it isn't blocked
+        self.post("/action", {"op": "block", "domain": "harpy.chat", "profile": "bbb222", "back": "/blocked?device=bbb222"}, "/blocked?device=bbb222")
+        self.assertEqual(self.blocked_on("harpy.chat"), ["aaa111", "bbb222"])
+        self.assertIn("harpy.chat", self.req("/blocked?device=nope")[2])          # unknown device → everything, not an error
 
     def test_other_fine_and_hidden_lists_filter_by_the_device_that_used_the_site(self):
         enrich.fetch_many = lambda ds: {d: {"title": f"Site {d}", "description": None, "fetch_error": None} for d in ds}

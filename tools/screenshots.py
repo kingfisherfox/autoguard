@@ -68,7 +68,7 @@ def main():
     shot("11-fine-sites", req("/allowed"), 900)
     shot("12-hidden-sites", req("/hidden"), 1200)
     h = req("/blocked")
-    shot("13-unblock-one-device", req("/action", {"op": "unblock", "domain": "character.ai", "profile": "d4e5f6", "back": "/blocked", "csrf": csrf(h)}), 900, 760)
+    shot("13-unblock-one-device", req("/action", {"op": "unblock", "domain": "character.ai", "profile": "d4e5f6", "back": "/blocked?device=d4e5f6", "csrf": csrf(h)}), 900, 760)
     h = req("/settings")
     shot("14-settings", h, 3200)
     shot("15-settings-ai-test", req("/settings", {"section": "ai", "do": "test", "csrf": csrf(h), "llm_provider": "openai",
