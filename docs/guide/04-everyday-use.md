@@ -20,6 +20,9 @@ your decision, **To check** shows an orange number. (On a phone the menu sits al
   site. Sites the AI never sees (your Fine sites, hidden sites, big platforms) show as **Not sorted**.
 - **Search** matches the address, the page title and the summary, so *"chess"* finds a chess site even when its
   address doesn't say so.
+- **Device** buttons (*Used on*) show only the sites one child's device looked up, with a count for each. On the
+  Blocked page they read *Blocked on* and show what's blocked on that device. Device, group, search and the tabs
+  all combine, and they stay set when you click Block, Fine or Hide.
 
 ## Home
 
@@ -41,8 +44,8 @@ Every site that can't be opened on your children's devices, grouped, newest firs
 
 - **Filters** across the top: *Everything*, *Found by Autoguard*, *Blocked by you*, and *On your NextDNS list*
   (sites that were already on your NextDNS block lists).
-- **Device** buttons show what's blocked on one device only, with a count for each (*All devices* shows
-  everything). They combine with the filters, groups and search.
+- **Blocked on** buttons show what's blocked on one device only, with a count for each (*All devices* shows
+  everything).
 - **Why it's blocked** shows the topic and how sure the AI was (*possibly*, *likely*, *very likely*) with its
   one-line reason.
 - **Last visited** shows when, how many times, and how many of those were at night (if you set a bedtime).

@@ -58,6 +58,10 @@ everything configured in a browser wizard. Human docs: `README.md` + `docs/guide
 - UI copy is for NON-technical parents: no "domain/DNS/profile/confidence/verdict" on parent pages (a test checks).
   Default views show only possible problems (Blocked, To check); everything fine/noisy is opt-in.
 - Stdlib only (Python 3.12). Light theme only. No external assets (CSP-friendly, offline LAN).
+- Styling: Atlassian Design System light tokens, one `--ds-*` CSS variable per token in `views.CSS` (the only home
+  for colours/spacing). Square corners everywhere (owner decision 2026-10-16; a test checks `border-radius` is 0).
+- Every list page goes through `views.listing` (search + device + group filters, grouped rows); add list pages there,
+  not with their own queries. Device = "looked it up" (`domains.profiles`) except Blocked = "blocked on" (`blocks`).
 - Secrets: only in the DB settings table or env; never rendered (masked last 4), never logged, never in git.
   Tests assert no key appears in any page.
 - The AI never decides control flow: guardrails + thresholds + cap in code; LLM outage ⇒ `llm_error`, enforcement continues.

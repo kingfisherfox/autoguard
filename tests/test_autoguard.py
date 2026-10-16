@@ -489,6 +489,27 @@ class Web(Base):
         both = self.req("/blocked?device=nope")[2]                    # unknown device → everything, not an error
         self.assertIn("only-a.chat", both); self.assertIn("only-b.chat", both)
 
+    def test_other_fine_and_hidden_lists_filter_by_the_device_that_used_the_site(self):
+        enrich.fetch_many = lambda ds: {d: {"title": f"Site {d}", "description": None, "fetch_error": None} for d in ds}
+        self.nd.visit("aaa111", "seen-a.example"); self.nd.visit("bbb222", "seen-b.example")
+        self.nd.visit("aaa111", "cdn-a.example"); self.setup_all(); con = self.con()
+        con.execute("UPDATE domains SET kind='infrastructure' WHERE domain='cdn-a.example'"); con.commit()
+        a, b = self.req("/checked?device=aaa111")[2], self.req("/checked?device=bbb222")[2]
+        self.assertIn("seen-a.example", a); self.assertNotIn("seen-b.example", a); self.assertIn("seen-b.example", b)
+        self.assertIn("cdn-a.example", self.req("/hidden?show=background&device=aaa111")[2])
+        self.assertNotIn("cdn-a.example", self.req("/hidden?show=background&device=bbb222")[2])
+        self.post("/action", {"op": "ok", "domain": "seen-b.example", "back": "/checked"}, "/checked")
+        self.assertIn("seen-b.example", self.req("/allowed?device=bbb222")[2])
+        self.assertNotIn("seen-b.example", self.req("/allowed?device=aaa111")[2])
+        # the filter survives paging links and action round-trips
+        box = self.req("/checked?device=aaa111&q=seen")[2].split('<form method="get"', 1)[1].split("</form>", 1)[0]
+        self.assertIn('name="device" value="aaa111"', box); self.assertIn('href="/checked?device=aaa111">clear', box)
+
+    def test_corners_are_square(self):
+        # owner decision 2026-10-16: no rounded corners anywhere (Atlassian tokens, radius removed)
+        css = re.findall(r"border-radius:([^;}]+)", web.V.CSS)
+        self.assertEqual(set(c.strip() for c in css), {"0"})
+
     def test_lists_are_grouped_and_say_what_each_site_is(self):
         self.setup_all(); con = self.con()
         for d, cat, title, desc, about in (("chess.example", "games", "Chess Club", "Play chess online", None),

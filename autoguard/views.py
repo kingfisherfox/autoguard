@@ -40,93 +40,119 @@ def sure(c):
     return "" if c is None else "very likely" if c >= .9 else "likely" if c >= .75 else "possibly"
 
 CSS = """
-:root{--bg:#f4f6f9;--card:#fff;--line:#e6e9ef;--line2:#f0f2f5;--ink:#131926;--ink2:#495266;--mut:#7b8395;
---pri:#2563eb;--pri-d:#1d4ed8;--pri-s:#edf3ff;--red:#c4302b;--red-s:#fdf1f0;--red-l:#f4c9c5;--grn:#137a4b;--grn-s:#ebf8f1;
---grn-l:#b6e2c9;--amb:#9a5800;--amb-s:#fff7e8;--amb-l:#f5d9a2;--r:14px;--ease:cubic-bezier(.2,.8,.2,1);
---sh:0 1px 2px rgba(19,25,38,.04),0 4px 14px -6px rgba(19,25,38,.06)}
-*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-body{margin:0;font:14.5px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
-a{color:var(--pri);text-decoration:none}a:hover{text-decoration:underline}
+:root{
+--ds-text:#172B4D;--ds-text-subtle:#44546F;--ds-text-subtlest:#626F86;--ds-text-inverse:#FFFFFF;--ds-link:#0C66E4;
+--ds-surface:#FFFFFF;--ds-surface-sunken:#F7F8F9;--ds-surface-hovered:#F1F2F4;
+--ds-border:#091E4224;--ds-border-input:#8590A2;--ds-border-focused:#388BFF;--ds-border-selected:#0C66E4;
+--ds-bg-neutral:#091E420F;--ds-bg-neutral-hovered:#091E4224;--ds-bg-neutral-pressed:#091E424F;--ds-bg-neutral-subtle-hovered:#091E420F;
+--ds-bg-selected:#E9F2FF;--ds-bg-selected-hovered:#CCE0FF;--ds-text-selected:#0C66E4;
+--ds-bg-brand-bold:#0C66E4;--ds-bg-brand-bold-hovered:#0055CC;--ds-bg-brand-bold-pressed:#09326C;
+--ds-bg-danger:#FFECEB;--ds-bg-danger-hovered:#FFD5D2;--ds-text-danger:#AE2E24;
+--ds-bg-success:#DCFFF1;--ds-bg-success-hovered:#BAF3DB;--ds-text-success:#216E4E;
+--ds-bg-warning:#FFF7D6;--ds-text-warning:#A54800;--ds-border-warning:#E56910;
+--ds-bg-information:#E9F2FF;--ds-text-information:#0055CC;--ds-bg-discovery:#F3F0FF;--ds-text-discovery:#5E4DB2;
+--ds-shadow-raised:0 1px 1px #091E4240,0 0 1px #091E424F;
+--ds-font-body:400 14px/20px ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Ubuntu,system-ui,"Helvetica Neue",sans-serif;
+--ds-ease:cubic-bezier(.15,1,.3,1)}
+/* Atlassian Design System light tokens (one --ds-* variable per token). Owner decision: square corners everywhere. */
+*,*::before,*::after{box-sizing:border-box;border-radius:0}html{-webkit-text-size-adjust:100%}
+body{margin:0;font:var(--ds-font-body);background:var(--ds-surface-sunken);color:var(--ds-text);-webkit-font-smoothing:antialiased}
+a{color:var(--ds-link);text-decoration:none}a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--ds-border-focused);outline-offset:2px}
 .app{display:flex;min-height:100vh}
-.side{width:240px;flex:none;background:#fff;border-right:1px solid var(--line);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:18px 12px 14px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--ink);padding:2px 10px 14px;letter-spacing:-.01em}
-.brand:hover{text-decoration:none}.logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(140deg,#4f8df9,#1d4ed8);display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
-.logo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.side nav{display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto}
-.side h6{margin:18px 10px 6px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mut)}
-.side nav a{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:9px;color:var(--ink2);font-weight:500;white-space:nowrap;transition:background .25s var(--ease),color .25s var(--ease)}
-.side nav a:hover{background:#f3f5f9;color:var(--ink);text-decoration:none}.side nav a.on{background:var(--pri-s);color:var(--pri-d)}
-.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.side{width:240px;flex:none;background:var(--ds-surface);border-right:1px solid var(--ds-border);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:12px 8px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:16px;color:var(--ds-text);padding:4px 8px 16px}.brand:hover{text-decoration:none}
+.logo{width:24px;height:24px;background:var(--ds-bg-brand-bold);display:grid;place-items:center}
+.logo svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.side nav{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
+.side h6{margin:16px 8px 4px;font-size:12px;line-height:16px;font-weight:600;color:var(--ds-text-subtlest)}
+.side nav a{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;position:relative;color:var(--ds-text-subtle);font-weight:500;white-space:nowrap;transition:background-color .1s var(--ds-ease)}
+.side nav a:hover{background:var(--ds-bg-neutral-subtle-hovered);color:var(--ds-text);text-decoration:none}
+.side nav a.on{background:var(--ds-bg-selected);color:var(--ds-text-selected)}
+.side nav a.on::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:2px;background:var(--ds-border-selected)}
+.ico{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .side nav a .badge{margin-left:auto}
-.badge{display:inline-block;min-width:20px;padding:1px 7px;border-radius:999px;background:#f59e0b;color:#fff;font-size:11.5px;font-weight:700;text-align:center;line-height:1.5}
-.who{border-top:1px solid var(--line);margin-top:10px;padding:12px 6px 0 10px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2)}
-.me{width:28px;height:28px;border-radius:50%;background:#e8eefb;color:var(--pri-d);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.badge{display:inline-block;min-width:24px;padding:0 6px;background:var(--ds-bg-brand-bold);color:var(--ds-text-inverse);font-size:12px;line-height:16px;text-align:center}
+.who{border-top:1px solid var(--ds-border);margin-top:8px;padding:12px 8px 4px;display:flex;align-items:center;gap:8px;color:var(--ds-text-subtle)}
+.me{width:24px;height:24px;background:var(--ds-bg-discovery);color:var(--ds-text-discovery);display:grid;place-items:center;font-weight:600;font-size:12px;flex:none}
 .who form{margin-left:auto}
-.content{flex:1;min-width:0}main{max-width:1200px;margin:0 auto;padding:30px 36px 80px}
-.head{margin-bottom:22px}.head p.lead{margin:0}h1{font-size:25px;line-height:1.2;margin:0 0 6px;letter-spacing:-.02em}
-p.lead{color:var(--ink2);margin:0 0 22px;max-width:780px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;color:inherit;display:flex;gap:14px;align-items:center;box-shadow:var(--sh);transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
-.card:hover{text-decoration:none;transform:translateY(-2px);box-shadow:0 1px 2px rgba(19,25,38,.05),0 12px 24px -12px rgba(19,25,38,.18)}
-.card .ib{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:none;background:var(--pri-s);color:var(--pri-d)}
-.card .ib.r{background:var(--red-s);color:var(--red)}.card .ib.a{background:var(--amb-s);color:var(--amb)}.card .ib.g{background:var(--grn-s);color:var(--grn)}
-.card b{display:block;font-size:24px;font-weight:700;line-height:1.1;letter-spacing:-.02em}.card span{color:var(--mut);font-size:13px}
-.card.hot{border-color:var(--amb-l);background:linear-gradient(180deg,#fffaf0,#fff)}
-section{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;margin-bottom:20px;box-shadow:var(--sh)}
-section h2{font-size:16px;margin:0 0 4px;letter-spacing:-.01em}p.hint{color:var(--mut);margin:0 0 14px;font-size:13.5px}
-.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.toolbar form{margin-left:auto}
-.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
-.chips .lbl{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-right:4px;min-width:62px}
-.chip{font-size:13px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);background:#fff;transition:all .25s var(--ease)}
-.chip span{color:var(--mut);font-size:12px;margin-left:3px}.chip:hover{text-decoration:none;border-color:#cfd5e0;background:#f8f9fb}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}.chip.on span{color:#c9cfdb}
-.tabs{display:inline-flex;gap:2px;padding:3px;background:#eef1f5;border-radius:11px;flex-wrap:wrap}
-.tabs a{font-size:13.5px;padding:5px 12px;border-radius:8px;color:var(--ink2);font-weight:500;transition:all .25s var(--ease)}
-.tabs a:hover{color:var(--ink);text-decoration:none}.tabs a.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(19,25,38,.08),0 1px 6px -2px rgba(19,25,38,.08)}
-.tbl{overflow-x:auto;margin:0 -22px;border-top:1px solid var(--line2)}table{width:100%;border-collapse:collapse}
-th{white-space:nowrap;text-align:left;font-weight:600;color:var(--mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--line);padding:9px 10px;background:#fafbfc}
-td{border-bottom:1px solid var(--line2);padding:12px 10px;vertical-align:top}th:first-child,td:first-child{padding-left:22px}th:last-child,td:last-child{padding-right:22px}
-tbody tr{transition:background .2s var(--ease)}tbody tr:last-child td{border-bottom:0}td.devs{min-width:250px}tbody tr:hover{background:#fafbfd}
-tr.grp td{background:#f6f8fb;font-size:12px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;padding-top:8px;padding-bottom:8px}
-tr.grp td span{font-weight:500;color:var(--mut);margin-left:8px;letter-spacing:0}
-td.dom{min-width:260px;max-width:460px}.site{display:flex;gap:12px;align-items:flex-start}
-.av{width:32px;height:32px;border-radius:9px;flex:none;display:grid;place-items:center;font-weight:700;font-size:13.5px;text-transform:uppercase;
-color:hsl(var(--h) 55% 34%);background:hsl(var(--h) 70% 94%);box-shadow:inset 0 0 0 1px hsl(var(--h) 50% 86%)}
-.sm{min-width:0}.dn{font-weight:600;overflow-wrap:anywhere;color:var(--ink)}.tt{color:var(--ink2);font-size:13.5px}
-.ds{color:var(--mut);font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.ai{color:#7c5cdb;font-size:11px;margin-right:4px}.mut{color:var(--mut);font-size:12.5px}.empty{color:var(--mut);padding:26px 0 6px;text-align:center}
-.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:12.5px;border:1px solid;margin:0 4px 5px 0;cursor:pointer;background:#fff;font-family:inherit;font-weight:500;transition:all .25s var(--ease)}
-.pill:active{transform:scale(.97)}.on-b{color:var(--red);border-color:var(--red-l);background:var(--red-s)}.off-b{color:var(--grn);border-color:var(--grn-l);background:var(--grn-s)}
-.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12.5px;background:var(--pri-s);color:#3045c8;white-space:nowrap;font-weight:500}
-.tag.nd{background:#f0f2f5;color:var(--ink2)}.st{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12.5px;background:#f0f2f5;font-weight:500}
-.st.ok{background:var(--grn-s);color:var(--grn)}.st.bad{background:var(--red-s);color:var(--red)}.st.run{background:var(--amb-s);color:var(--amb)}
-button,.btn{white-space:nowrap;font:inherit;font-size:13.5px;font-weight:500;border:1px solid #d8dde6;background:#fff;border-radius:9px;padding:6px 13px;cursor:pointer;color:var(--ink);display:inline-block;transition:all .25s var(--ease)}
-button:hover,.btn:hover{background:#f6f7fa;text-decoration:none}button:active,.btn:active{transform:scale(.98)}
-button.primary,.btn.primary{background:var(--pri);border-color:var(--pri);color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.25),inset 0 1px 0 rgba(255,255,255,.15)}
-button.primary:hover{background:var(--pri-d)}button.danger{color:var(--red);border-color:var(--red-l)}button.danger:hover{background:var(--red-s)}
-button.ok{color:var(--grn);border-color:var(--grn-l)}button.ok:hover{background:var(--grn-s)}
-button.small{padding:3px 10px;font-size:12.5px;border-radius:8px}form.inline{display:inline}label{font-size:13.5px}
-input[type=text],input[type=password],input[type=number],input[type=search],select,textarea{font:inherit;font-size:14px;border:1px solid #d8dde6;border-radius:9px;padding:7px 11px;width:100%;background:#fff;color:var(--ink);transition:border-color .2s var(--ease),box-shadow .2s var(--ease)}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-.field{margin-bottom:14px}.field>label{display:block;font-weight:600;margin-bottom:5px}.field .mut{display:block;margin-top:4px}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 18px}
-.banner{border-radius:12px;padding:13px 16px;margin-bottom:16px;border:1px solid}
-.bad{background:var(--red-s);border-color:var(--red-l);color:#7a271a}.good{background:var(--grn-s);border-color:var(--grn-l);color:#0b4d31}
-.info{background:#eff5ff;border-color:#c7dafd;color:#1e3a8a}.warn{background:var(--amb-s);border-color:var(--amb-l);color:#6e3608}
+.content{flex:1;min-width:0}main{max-width:1200px;margin:0 auto;padding:24px 32px 64px}
+.head{margin-bottom:24px}h1{font-size:24px;line-height:28px;font-weight:600;margin:0 0 8px}
+p.lead{color:var(--ds-text-subtle);margin:0 0 24px;max-width:760px}.head p.lead{margin:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--ds-surface);box-shadow:var(--ds-shadow-raised);padding:16px;color:inherit;display:flex;gap:12px;align-items:center;transition:background-color .1s var(--ds-ease)}
+.card:hover{text-decoration:none;background:var(--ds-surface-hovered)}
+.card .ib{width:40px;height:40px;display:grid;place-items:center;flex:none;background:var(--ds-bg-information);color:var(--ds-text-information)}
+.card .ib.r{background:var(--ds-bg-danger);color:var(--ds-text-danger)}.card .ib.a{background:var(--ds-bg-warning);color:var(--ds-text-warning)}
+.card .ib.g{background:var(--ds-bg-success);color:var(--ds-text-success)}
+.card b{display:block;font-size:24px;line-height:28px;font-weight:600}.card span{color:var(--ds-text-subtlest);font-size:12px;line-height:16px}
+.card.hot{box-shadow:var(--ds-shadow-raised),inset 3px 0 0 var(--ds-border-warning)}
+section{background:var(--ds-surface);box-shadow:var(--ds-shadow-raised);padding:20px 24px;margin-bottom:24px}
+section h2{font-size:16px;line-height:20px;font-weight:600;margin:0 0 4px}p.hint{color:var(--ds-text-subtlest);margin:0 0 16px}
+.toolbar{display:flex;gap:8px 16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px}.toolbar form{margin-left:auto}
+.chips{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.chips .lbl{font-size:12px;line-height:16px;font-weight:600;color:var(--ds-text-subtlest);margin-right:8px;min-width:72px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 8px;font-weight:500;color:var(--ds-text-subtle);background:var(--ds-bg-neutral);transition:background-color .1s var(--ds-ease)}
+.chip span{font-size:12px;line-height:16px;min-width:20px;padding:0 4px;text-align:center;background:var(--ds-bg-neutral);color:var(--ds-text)}
+.chip:hover{text-decoration:none;background:var(--ds-bg-neutral-hovered);color:var(--ds-text)}
+.chip.on{background:var(--ds-bg-selected);color:var(--ds-text-selected);box-shadow:inset 0 0 0 1px var(--ds-border-selected)}
+.chip.on span{background:var(--ds-bg-brand-bold);color:var(--ds-text-inverse)}
+.tabs{display:flex;flex-wrap:wrap;box-shadow:inset 0 -2px 0 var(--ds-border)}
+.tabs a{padding:4px 8px 8px;margin-right:8px;font-weight:500;color:var(--ds-text-subtle);box-shadow:inset 0 -2px 0 transparent;transition:color .1s var(--ds-ease),box-shadow .1s var(--ds-ease)}
+.tabs a:hover{color:var(--ds-text);text-decoration:none;box-shadow:inset 0 -2px 0 var(--ds-bg-neutral-pressed)}
+.tabs a.on{color:var(--ds-text-selected);box-shadow:inset 0 -2px 0 var(--ds-border-selected)}
+.tbl{overflow-x:auto;margin:0 -24px}table{width:100%;border-collapse:collapse}
+th{white-space:nowrap;text-align:left;font-size:12px;line-height:16px;font-weight:600;color:var(--ds-text-subtlest);border-bottom:2px solid var(--ds-border);padding:8px}
+td{border-bottom:1px solid var(--ds-border);padding:12px 8px;vertical-align:top}
+th:first-child,td:first-child{padding-left:24px}th:last-child,td:last-child{padding-right:24px}
+tbody tr{transition:background-color .1s var(--ds-ease)}tbody tr:hover{background:var(--ds-bg-neutral-subtle-hovered)}tbody tr:last-child td{border-bottom:0}
+tr.grp td{background:var(--ds-surface-sunken);font-size:12px;line-height:16px;font-weight:600;color:var(--ds-text-subtle);padding-top:8px;padding-bottom:8px}
+tr.grp td span{margin-left:8px;font-weight:400;color:var(--ds-text-subtlest)}
+td.dom{min-width:220px;max-width:420px}td.devs{min-width:190px}.site{display:flex;gap:12px;align-items:flex-start}
+.av{width:32px;height:32px;flex:none;display:grid;place-items:center;font-weight:600;text-transform:uppercase;color:hsl(var(--h) 45% 30%);background:hsl(var(--h) 60% 92%)}
+.sm{min-width:0}.dn{font-weight:600;overflow-wrap:anywhere}.tt{color:var(--ds-text-subtle)}
+.ds{color:var(--ds-text-subtlest);font-size:12px;line-height:16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ai{color:var(--ds-text-discovery);font-size:11px;margin-right:4px}.mut{color:var(--ds-text-subtlest);font-size:12px;line-height:16px}
+.empty{color:var(--ds-text-subtlest);padding:24px 0 8px;text-align:center}
+.pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;margin:0 4px 4px 0;font:inherit;font-size:12px;font-weight:500;border:0;cursor:pointer;transition:background-color .1s var(--ds-ease)}
+.on-b{color:var(--ds-text-danger);background:var(--ds-bg-danger)}.on-b:hover{background:var(--ds-bg-danger-hovered)}
+.off-b{color:var(--ds-text-success);background:var(--ds-bg-success)}.off-b:hover{background:var(--ds-bg-success-hovered)}
+.tag,.st{display:inline-block;padding:0 4px;font-size:11px;line-height:16px;font-weight:700;text-transform:uppercase;white-space:nowrap;vertical-align:1px}
+.tag{background:var(--ds-bg-danger);color:var(--ds-text-danger)}.tag.nd,.st{background:var(--ds-bg-neutral);color:var(--ds-text-subtle)}
+.st.ok{background:var(--ds-bg-success);color:var(--ds-text-success)}.st.bad{background:var(--ds-bg-danger);color:var(--ds-text-danger)}
+.st.run{background:var(--ds-bg-information);color:var(--ds-text-information)}
+button,.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:32px;padding:0 12px;font:inherit;font-weight:500;white-space:nowrap;border:0;background:var(--ds-bg-neutral);color:var(--ds-text-subtle);cursor:pointer;transition:background-color .1s var(--ds-ease)}
+button:hover,.btn:hover{background:var(--ds-bg-neutral-hovered);color:var(--ds-text);text-decoration:none}button:active,.btn:active{background:var(--ds-bg-neutral-pressed)}
+button.primary,.btn.primary{background:var(--ds-bg-brand-bold);color:var(--ds-text-inverse)}
+button.primary:hover,.btn.primary:hover{background:var(--ds-bg-brand-bold-hovered)}button.primary:active{background:var(--ds-bg-brand-bold-pressed)}
+button.danger{background:var(--ds-bg-danger);color:var(--ds-text-danger)}button.danger:hover{background:var(--ds-bg-danger-hovered)}
+button.ok{background:var(--ds-bg-success);color:var(--ds-text-success)}button.ok:hover{background:var(--ds-bg-success-hovered)}
+button.small{height:24px;padding:0 8px}form.inline{display:inline}
+input[type=text],input[type=password],input[type=number],input[type=search],select,textarea{-webkit-appearance:none;appearance:none;font:inherit;min-height:32px;border:1px solid var(--ds-border-input);padding:5px 8px;width:100%;background-color:var(--ds-surface);color:var(--ds-text);transition:background-color .1s var(--ds-ease),border-color .1s var(--ds-ease)}
+input[type=text]:hover,input[type=password]:hover,input[type=number]:hover,input[type=search]:hover,select:hover,textarea:hover{background-color:var(--ds-surface-sunken)}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ds-border-focused);box-shadow:inset 0 0 0 1px var(--ds-border-focused);background-color:var(--ds-surface)}
+select{padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2344546F' stroke-width='2'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+input[type=checkbox],input[type=radio]{accent-color:var(--ds-bg-brand-bold)}
+.field{margin-bottom:16px}.field>label{display:block;font-size:12px;line-height:16px;font-weight:600;color:var(--ds-text-subtle);margin-bottom:4px}.field .mut{display:block;margin-top:4px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 16px}
+.banner{padding:16px;margin-bottom:16px;color:var(--ds-text)}
+.bad{background:var(--ds-bg-danger)}.good{background:var(--ds-bg-success)}.info{background:var(--ds-bg-information)}.warn{background:var(--ds-bg-warning)}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.right{margin-left:auto}
-.pager{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:14px;font-size:13px;color:var(--mut)}
-.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:14px}
-.choice{border:1px solid #d8dde6;border-radius:11px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start;cursor:pointer;background:#fff;transition:all .25s var(--ease)}
-.choice:has(input:checked){border-color:var(--pri);background:var(--pri-s)}.choice small{display:block;color:var(--mut)}
-.setup{max-width:760px;margin:36px auto;padding:0 18px}.setup .brand{padding-left:0;font-size:19px}
-.steps{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
-.steps span{font-size:12.5px;padding:4px 10px;border-radius:999px;background:#e9edf3;color:var(--ink2)}.steps span.on{background:var(--pri);color:#fff}
-.steps span.done{background:var(--grn-s);color:var(--grn)}code{background:#f0f2f5;border-radius:5px;padding:1px 5px;font-size:12.5px}
-details summary{cursor:pointer;color:var(--ink2);font-weight:600}
+.pager{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:16px;font-size:12px;color:var(--ds-text-subtlest)}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:16px}
+.choice{border:1px solid var(--ds-border);padding:8px 12px;display:flex;gap:8px;align-items:flex-start;cursor:pointer;background:var(--ds-surface);transition:background-color .1s var(--ds-ease)}
+.choice:hover{background:var(--ds-surface-hovered)}.choice:has(input:checked){border-color:var(--ds-border-selected);background:var(--ds-bg-selected);box-shadow:inset 0 0 0 1px var(--ds-border-selected)}
+.choice small{display:block;color:var(--ds-text-subtlest)}
+.setup{max-width:760px;margin:40px auto;padding:0 16px}.setup .brand{padding-left:0;font-size:20px}
+.steps{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.steps span{font-size:12px;line-height:16px;font-weight:600;padding:4px 8px;background:var(--ds-bg-neutral);color:var(--ds-text-subtle)}
+.steps span.on{background:var(--ds-bg-brand-bold);color:var(--ds-text-inverse)}.steps span.done{background:var(--ds-bg-success);color:var(--ds-text-success)}
+code{background:var(--ds-bg-neutral);padding:0 4px;font:12px/16px ui-monospace,SFMono-Regular,Menlo,monospace}
+details summary{cursor:pointer;color:var(--ds-text-subtle);font-weight:600}
 @media (max-width:900px){.app{flex-direction:column}
-.side{width:auto;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 12px 0;border-right:0;border-bottom:1px solid var(--line);z-index:5}
-.brand{padding:2px 6px 8px}.side nav{flex-direction:row;flex-basis:100%;order:3;overflow-x:auto;padding-bottom:8px}.side h6{display:none}
-.who{border:0;margin:0 0 8px auto;padding:0}main{padding:20px 14px 60px}.tbl{margin:0 -16px}section{padding:16px}
+.side{width:auto;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:8px 8px 0;border-right:0;border-bottom:1px solid var(--ds-border);z-index:5}
+.brand{padding:4px 8px 8px}.side nav{flex-direction:row;flex-basis:100%;order:3;overflow-x:auto;padding-bottom:8px}.side h6{display:none}
+.who{border:0;margin:0 0 8px auto;padding:0}main{padding:16px 12px 48px}.tbl{margin:0 -16px}section{padding:16px}
 th:first-child,td:first-child{padding-left:16px}th:last-child,td:last-child{padding-right:16px}.toolbar form{margin-left:0;width:100%}}
 """
 ICONS = {
@@ -202,7 +228,7 @@ def pager(path, page, total, q, keep=None):
 def search(path, q, keep=None):
     hid = "".join(f'<input type="hidden" name="{esc(k)}" value="{esc(v)}">' for k, v in (keep or {}).items())
     return (f'<form method="get" action="{path}" class="row">{hid}<input type="search" name="q" value="{esc(q)}" '
-            f'placeholder="Search sites…" style="width:240px"><button>Search</button>{f"<a href={path}>clear</a>" if q else ""}</form>')
+            f'placeholder="Search sites…" style="width:240px"><button>Search</button>{f'<a href="{path}{"?" + urlencode(keep) if keep else ""}">clear</a>' if q else ""}</form>')
 
 def tabs(path, current, options, keep=None):
     return '<div class="tabs">' + "".join(
@@ -212,30 +238,55 @@ def tabs(path, current, options, keep=None):
 def devices(con): return [dict(r) for r in con.execute("SELECT id, name FROM profiles WHERE enabled=1 ORDER BY name")]
 def topic_labels(con): return {r["id"]: r["label"] for r in con.execute("SELECT id, label FROM topics")}
 
-# ── grouped, searchable site lists (every list page goes through listing → table) ──
+# ── grouped, searchable, per-device site lists (every list page goes through listing → filters → table → footer) ──
 CAT_LABEL = {c: label for c, label, _ in db.CATEGORIES} | {"unsorted": "Not sorted"}
 CAT_RANK = "CASE category " + " ".join(f"WHEN '{c}' THEN {i}" for i, (c, _, _) in enumerate(db.CATEGORIES)) + " ELSE 99 END"
+# device filter: pid → (SQL with its ? args). Default = the child's device looked the site up (domains.profiles);
+# Blocked passes its own (= blocked on that device).
+VISITED = lambda pid: ("EXISTS (SELECT 1 FROM json_each(domains.profiles) WHERE value=?)", (pid,))
 
-def listing(ctx, where, wargs=(), order="last_seen DESC"):
-    """One page of `domains` rows matching `where`: search (address, page title, AI one-liner), group filter (?cat=),
-    rows ordered group-first so a page reads as sections. Counts per group feed the chips and section headers."""
+def listing(ctx, where, wargs=(), order="last_seen DESC", on=VISITED, dev_label="Used on"):
+    """One page of `domains` rows matching `where`, narrowed by search (address, page title, AI one-liner), device
+    (?device=) and group (?cat=). Rows are ordered group-first so a page reads as sections. Per-device and per-group
+    counts feed the chips; each count respects the other filters except its own."""
     con = ctx["con"]; page, q = paging(ctx); like = f"%{q}%"
     base = f"FROM domains WHERE ({where}) AND (domain LIKE ? OR COALESCE(title,'') LIKE ? OR COALESCE(about,'') LIKE ?)"
     args = (*wargs, like, like, like)
+    profs = devices(con); dev = ctx["q"].get("device", ""); dev = dev if dev in {p["id"] for p in profs} else ""
+    n = lambda sql, a: con.execute(f"SELECT count(*) {sql}", a).fetchone()[0]
+    per = {p["id"]: n(f"{base} AND {on(p['id'])[0]}", (*args, *on(p["id"])[1])) for p in profs} if len(profs) > 1 else {}
+    if dev: dsql, dargs = on(dev); base, args = f"{base} AND {dsql}", (*args, *dargs)
     counts = {(r[0] or "unsorted"): r[1] for r in con.execute(f"SELECT category, count(*) {base} GROUP BY category", args)}
     cat = ctx["q"].get("cat", ""); cat = cat if cat in counts else ""
     cw, ca = ("", ()) if not cat else (" AND category IS NULL", ()) if cat == "unsorted" else (" AND category=?", (cat,))
     rows = con.execute(f"SELECT * {base}{cw} ORDER BY {CAT_RANK}, {order} LIMIT ? OFFSET ?", (*args, *ca, PAGE, (page - 1) * PAGE)).fetchall()
-    return {"page": page, "q": q, "cat": cat, "counts": counts, "total": counts[cat] if cat else sum(counts.values()), "rows": rows}
+    return {"page": page, "q": q, "cat": cat, "dev": dev, "devs": profs, "per": per, "dev_label": dev_label, "counts": counts,
+            "total": counts.get(cat, 0) if cat else sum(counts.values()), "rows": rows}
 
-def groups(path, L, keep):
+def state(L, keep, **over):
+    """The page's filters as query args (keep + search + group + device), with overrides; empty values dropped."""
+    s = {**keep, "q": L["q"], "cat": L["cat"], "device": L["dev"], **over}
+    return {k: v for k, v in s.items() if v}
+
+def chips(label, links): return f'<div class="chips"><span class="lbl">{label}</span>{"".join(links)}</div>'
+
+def chip(path, args, text, n, on):
+    return f'<a class="chip{" on" if on else ""}" href="{path}?{urlencode(args)}">{esc(text)}{"" if n is None else f"<span>{n}</span>"}</a>'
+
+def filters(path, L, keep, tab=None):
+    """Toolbar (optional tabs + search), then device chips and group chips. Every link keeps the other filters."""
+    tabbar = tabs(path, tab[0], tab[1], state(L, keep, show="", page="")) if tab else ""
+    hid = state(L, keep); hid.pop("q", None)
+    out = f'<div class="toolbar">{tabbar}{search(path, L["q"], hid)}</div>'
+    if L["per"]:
+        out += chips(L["dev_label"], [chip(path, state(L, keep, device="", cat=""), "All devices", None, not L["dev"])]
+                     + [chip(path, state(L, keep, device=p["id"], cat=""), p["name"], L["per"][p["id"]], p["id"] == L["dev"]) for p in L["devs"]])
     c = L["counts"]
-    if len(c) < 2: return ""
-    base = {**keep, **({"q": L["q"]} if L["q"] else {})}
-    link = lambda k, n: (f'<a class="chip{" on" if k == L["cat"] else ""}" href="{path}?{urlencode({**base, **({"cat": k} if k else {})})}">'
-                         f'{esc(CAT_LABEL.get(k, "All"))}<span>{n}</span></a>')
-    order = [k for k, _, _ in db.CATEGORIES] + ["unsorted"]
-    return '<div class="chips"><span class="lbl">Groups</span>' + link("", sum(c.values())) + "".join(link(k, c[k]) for k in order if k in c) + "</div>"
+    if len(c) > 1:
+        order = [k for k, _, _ in db.CATEGORIES] + ["unsorted"]
+        out += chips("Groups", [chip(path, state(L, keep, cat=""), "All", sum(c.values()), not L["cat"])]
+                     + [chip(path, state(L, keep, cat=k), CAT_LABEL.get(k, "Other"), c[k], k == L["cat"]) for k in order if k in c])
+    return out
 
 def table(cols, L, row, empty):
     if not L["rows"]: return f'<p class="empty">{empty}</p>'
@@ -248,11 +299,9 @@ def table(cols, L, row, empty):
     return (f'<div class="tbl"><table><thead><tr>{"".join(f"<th>{c}</th>" for c in cols)}</tr></thead>'
             f'<tbody>{"".join(out)}</tbody></table></div>')
 
-def filters(path, L, keep, left=""):
-    return f'<div class="toolbar">{left}{search(path, L["q"], {**keep, **({"cat": L["cat"]} if L["cat"] else {})})}</div>{groups(path, L, keep)}'
-
 def footer(path, L, keep):
-    return pager(path, L["page"], L["total"], L["q"], {**keep, **({"cat": L["cat"]} if L["cat"] else {})})
+    k = state(L, keep); k.pop("q", None)
+    return pager(path, L["page"], L["total"], L["q"], k)
 
 # ── row cells ───────────────────────────────────────────────────────────────
 def site(r):
@@ -342,35 +391,26 @@ BLOCKED_TABS = [("all", "Everything"), ("auto", "Found by Autoguard"), ("owner",
 def blocked(ctx):
     con = ctx["con"]; profs, tl = devices(con), topic_labels(con)
     show = ctx["q"].get("show", "all"); show = show if show in dict(BLOCKED_TABS) else "all"
-    dev = ctx["q"].get("device", ""); dev = dev if dev in {p["id"] for p in profs} else ""
-    cond, args = "", []
-    if show != "all": cond += " AND b.source=?"; args.append(show)
-    if dev: cond += " AND b.profile=?"; args.append(dev)
+    cond, args = ("", []) if show == "all" else (" AND b.source=?", [show])
+    on = lambda pid: (f"EXISTS (SELECT 1 FROM blocks b WHERE b.domain=domains.domain AND b.state='blocked' AND b.profile=?{cond})", (pid, *args))
     L = listing(ctx, f"EXISTS (SELECT 1 FROM blocks b WHERE b.domain=domains.domain AND b.state='blocked'{cond})", args,
-                "COALESCE(decided_at, first_seen) DESC, domain")
+                "COALESCE(decided_at, first_seen) DESC, domain", on=on, dev_label="Blocked on")
     ds = [r["domain"] for r in L["rows"]]
     st = con.execute(f"SELECT domain, profile, state, source FROM blocks WHERE domain IN ({','.join('?' * len(ds))})", ds).fetchall() if ds else []
-    state = {(r["domain"], r["profile"]): r["state"] for r in st}
+    state_ = {(r["domain"], r["profile"]): r["state"] for r in st}
     srcs = {}
     for r in st:
         if r["state"] == "blocked": srcs.setdefault(r["domain"], set()).add(r["source"])
     src = lambda d: next((s for s in ("auto", "owner", "nextdns") if s in srcs.get(d, ())), "auto")
-    allp, back = [("profile", p["id"]) for p in profs], here(ctx)
-    keep = {"show": show, **({"device": dev} if dev else {})}
-    per = {r[0]: r[1] for r in con.execute("SELECT profile, count(DISTINCT domain) FROM blocks WHERE state='blocked' GROUP BY profile")}
-    dlink = lambda pid, label, n: (f'<a class="chip{" on" if pid == dev else ""}" href="/blocked?'
-                                   f'{urlencode({"show": show, **({"device": pid} if pid else {}), **({"q": L["q"]} if L["q"] else {})})}">'
-                                   f'{esc(label)}{f"<span>{n}</span>" if n is not None else ""}</a>')
-    devbar = ('<div class="chips"><span class="lbl">Device</span>' + dlink("", "All devices", None)
-              + "".join(dlink(p["id"], p["name"], per.get(p["id"], 0)) for p in profs) + "</div>") if len(profs) > 1 else ""
+    allp, back, keep = [("profile", p["id"]) for p in profs], here(ctx), {"show": show}
     def row(r):
-        return (f'<tr>{site(r)}{why(r, tl, src(r["domain"]))}{visited(r)}<td class="devs">{pills(ctx, r["domain"], profs, state, back)}</td>'
+        return (f'<tr>{site(r)}{why(r, tl, src(r["domain"]))}{visited(r)}<td class="devs">{pills(ctx, r["domain"], profs, state_, back)}</td>'
                 f'<td>{button(ctx, "/action", "Allow everywhere", [("op", "unblock"), ("domain", r["domain"]), ("back", back)] + allp, "small")}</td></tr>')
     body = [head("Blocked sites", "These sites can’t be opened on your children’s devices. Each device is a button: "
                  "<b>⛔ red = blocked there</b>, <b>✓ green = allowed there</b> — click to change it for that device only. "
                  "Autoguard remembers what you choose."),
-            '<section>', filters("/blocked", L, keep, tabs("/blocked", show, BLOCKED_TABS, {k: v for k, v in keep.items() if k != "show"} | ({"q": L["q"]} if L["q"] else {}))),
-            devbar, table(["Site", "Why it’s blocked", "Last visited", "Devices", ""], L, row, "Nothing here."), footer("/blocked", L, keep), "</section>"]
+            '<section>', filters("/blocked", L, keep, (show, BLOCKED_TABS)),
+            table(["Site", "Why it’s blocked", "Last visited", "Devices", ""], L, row, "Nothing here."), footer("/blocked", L, keep), "</section>"]
     if show == "nextdns" or (show == "all" and any(src(d) == "nextdns" for d in ds)):
         body.append('<p class="mut" style="margin:-8px 0 18px">“On your NextDNS block list” means it was already blocked in your NextDNS account before Autoguard. '
                     'Allowing it here removes it from that list too.</p>')
@@ -383,11 +423,12 @@ def blocked(ctx):
     return layout(ctx, "Blocked", "".join(body), "/blocked")
 
 # ── list pages ──────────────────────────────────────────────────────────────
-def simple_list(ctx, path, title, lead, where, order, cols, row, empty, top="", keep=None, wargs=(), left=""):
-    """A grouped list page. `row(r, tl, profs)` renders one site; `top` may be a function of the listing (bulk forms)."""
+def simple_list(ctx, path, title, lead, where, order, cols, row, empty, top="", keep=None, wargs=(), tab=None):
+    """A grouped list page with device + group chips. `row(r, tl, profs)` renders one site; `top` may be a function
+    of the listing (bulk forms)."""
     con, keep = ctx["con"], keep or {}
     L = listing(ctx, where, wargs, order); tl, profs = topic_labels(con), devices(con)
-    body = (head(title, lead) + f'<section>{top(L) if callable(top) else top}{filters(path, L, keep, left)}'
+    body = (head(title, lead) + f'<section>{top(L) if callable(top) else top}{filters(path, L, keep, tab)}'
             + table(cols, L, lambda r: row(r, tl, profs), empty) + footer(path, L, keep) + "</section>")
     return layout(ctx, title, body, path), L["rows"]
 
@@ -440,7 +481,7 @@ def hidden(ctx):
             "bedtime…) already block, and big platforms like Google or WhatsApp.")
     cols = ["Site", *(["Note"] if show == "builtin" else []), "Last visited", ""]
     return simple_list(ctx, "/hidden", "Hidden sites", lead, where, "last_seen DESC", cols, row, "Nothing here.",
-                       keep={"show": show}, left=tabs("/hidden", show, HIDDEN_TABS))[0]
+                       keep={"show": show}, tab=(show, HIDDEN_TABS))[0]
 
 def allowed(ctx):
     back = here(ctx)

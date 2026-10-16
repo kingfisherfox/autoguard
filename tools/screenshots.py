@@ -8,7 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); sys.path.ins
 OUT = os.path.join(ROOT, "docs", "images")
 CHROME = os.environ.get("CHROME") or next((p for p in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
                                                        shutil.which("google-chrome") or "", shutil.which("chromium") or "") if p and os.path.exists(p)), None)
-BG = (244, 246, 249)   # views.CSS --bg; the white sidebar (left 240px) is ignored when trimming
+BG = (247, 248, 249)   # views.CSS --bg; the white sidebar (left 240px) is ignored when trimming
 
 tmp = tempfile.mkdtemp(); os.environ["AUTOGUARD_DB"] = os.path.join(tmp, "demo.db")
 from autoguard import config, auth  # noqa: E402
