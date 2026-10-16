@@ -38,6 +38,34 @@ SITES = {
     "ads-exchange.example": ("Ad exchange for publishers", None, .9, "infrastructure", "Advertising service."),
     "app-backend.example": ("Welcome to nginx!", None, .95, "infrastructure", "App back-end server."),
 }
+# site → (group, AI one-liner, homepage meta description) — what the parent sees under each address
+ABOUT = {
+    "character.ai": ("ai", "AI character chat app", "Chat with millions of AI characters, anytime."),
+    "spicychat.ai": ("ai", "Uncensored AI roleplay chat", "No filters. Create and chat with any character."),
+    "ai-girlfriend.example": ("ai", "AI girlfriend chat app", "She’s always there for you. No limits."),
+    "ome.tv": ("social", "Random video chat with strangers", "Meet new people from all over the world on video."),
+    "chatroulette.com": ("social", "Random webcam chat with strangers", "Chat with random people on camera."),
+    "talk-to-randoms.example": ("social", "Anonymous text chat site", "Talk to someone new. No sign-up."),
+    "alpha-mindset.example": ("hobbies", "Paid 'alpha male' self-help course", "Escape the matrix. Join 40,000 men."),
+    "storyforge.example": ("ai", "AI story-writing tool", "Write stories together with AI. Mature mode available."),
+    "wikipedia.org": ("learning", "Free online encyclopedia", "The free encyclopedia that anyone can edit."),
+    "khanacademy.org": ("learning", "Free school lessons and practice", "Free courses for maths, science and more."),
+    "minecraft.net": ("games", "Official Minecraft game site", "Explore, build and survive in Minecraft."),
+    "chess.com": ("games", "Online chess games and lessons", "Play chess online with friends."),
+    "duolingo.com": ("learning", "Language-learning app", "The free, fun way to learn a language."),
+    "bbc.co.uk": ("news", "BBC news, TV and radio", "News, sport, TV, radio and more."),
+    "imperialwarmuseums.org.uk": ("learning", "UK war history museums", "Museums telling the stories of war."),
+    "scratch.mit.edu": ("learning", "Kids’ coding site from MIT", "Create stories, games and animations."),
+    "nationalgeographic.com": ("news", "Science, nature and travel magazine", "Explore science, nature and history."),
+    "lego.com": ("shopping", "Official LEGO shop and games", "Shop LEGO sets and play games."),
+    "cdn-edge-17.example": ("services", "Content delivery servers for apps", None),
+    "metrics-collector.example": ("ads", "App usage analytics service", None),
+    "lb-eu-west.example": ("services", "Load balancer for a cloud provider", None),
+    "ads-exchange.example": ("ads", "Advertising exchange for mobile games", "Monetise your app with programmatic ads."),
+    "app-backend.example": ("services", "Back-end servers for a mobile game", None),
+    "kick.com": ("video", "Live-streaming site", "Watch live streams."),
+    "4chan.org": ("social", "Anonymous image forum", None),
+}
 VISITS = {   # device → [(site, hours_ago, times, at_night)]
     "a1b2c3": [("spicychat.ai", 3, 6, True), ("ome.tv", 5, 3, True), ("wikipedia.org", 2, 40, False), ("minecraft.net", 4, 22, False),
                ("alpha-mindset.example", 20, 4, False), ("talk-to-randoms.example", 7, 2, True), ("cdn-edge-17.example", 1, 90, False),
@@ -89,10 +117,11 @@ def fake_classify(items, topics, cfg, ok=(), bl=()):
         elif d == "4chan.org": out[d] = ("none", .7, "", "website")
         elif d == "kick.com": out[d] = ("redpill" if "redpill" in ids else "none", .8, "Streaming host used by manosphere influencers.", "website")
         else: out[d] = ("none", .95, "Encyclopedia." if "wikipedia" in d else "No evidence of a listed topic.", "website")
-    return out
+    return {d: (*v, *([None] * 4))[:4] + ABOUT.get(d, ("other", None, None))[:2] for d, v in out.items()}
 
 def fake_fetch_many(domains):
-    return {d: {"title": SITES.get(d, (TITLES.get(d),))[0], "description": None, "fetch_error": None} for d in domains}
+    return {d: {"title": SITES.get(d, (TITLES.get(d),))[0], "description": ABOUT.get(d, (None, None, None))[2], "fetch_error": None}
+            for d in domains}
 
 def install():
     from autoguard import enrich, llm, nextdns

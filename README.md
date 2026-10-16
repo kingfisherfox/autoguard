@@ -59,11 +59,12 @@ Parents only see what might be a problem. Ad servers, app back-ends and load bal
 | Page | For |
 |---|---|
 | **Home** | Is it working, when it checks next, anything that needs you. |
-| **Blocked** | Every blocked site with what it is and why; one button per device to block or allow it there. |
+| **Blocked** | Every blocked site with what it is and why, grouped and filterable by device; one button per device to block or allow it there. |
 | **To check** | Possible problems the AI wasn't sure about: *Block it* or *It's fine*. |
 | **Other sites** | Sites judged fine. Optional reading; one click clears a page. |
 | **Fine sites** | Sites you trust. Never blocked, never sent to the AI. |
-| **Settings** | Connections and AI test, what to block, people, hidden sites, history, checks. |
+| **Hidden sites** | Background services (each with a one-line summary of what it is), sites NextDNS already blocks, big platforms. |
+| **Settings** | Connections and AI test, what to block, people, history, checks. |
 
 Default topics: **Uncensored / companion AI**, **Stranger chat**, **Red pill / manosphere**, plus an optional
 **Porn & adult content (backup)**. All editable.

@@ -8,7 +8,7 @@ import html, json, math
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from urllib.parse import urlencode
-from . import config, scheduler, settings as S
+from . import config, db, guard, scheduler, settings as S
 
 PAGE = 50
 esc = lambda s: html.escape(str(s if s is not None else ""), quote=True)
@@ -40,60 +40,115 @@ def sure(c):
     return "" if c is None else "very likely" if c >= .9 else "likely" if c >= .75 else "possibly"
 
 CSS = """
+:root{--bg:#f4f6f9;--card:#fff;--line:#e6e9ef;--line2:#f0f2f5;--ink:#131926;--ink2:#495266;--mut:#7b8395;
+--pri:#2563eb;--pri-d:#1d4ed8;--pri-s:#edf3ff;--red:#c4302b;--red-s:#fdf1f0;--red-l:#f4c9c5;--grn:#137a4b;--grn-s:#ebf8f1;
+--grn-l:#b6e2c9;--amb:#9a5800;--amb-s:#fff7e8;--amb-l:#f5d9a2;--r:14px;--ease:cubic-bezier(.2,.8,.2,1);
+--sh:0 1px 2px rgba(19,25,38,.04),0 4px 14px -6px rgba(19,25,38,.06)}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f6f6f3;color:#1d1d1b}
-a{color:#1d4ed8}header{background:#fff;border-bottom:1px solid #e4e4df;position:sticky;top:0;z-index:5}
-.bar{max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-.brand{font-weight:700;font-size:17px;color:#1d1d1b;text-decoration:none;margin-right:6px}
-nav{display:flex;gap:2px;flex-wrap:wrap;flex:1}nav a{color:#4b4b47;text-decoration:none;padding:6px 11px;border-radius:8px;font-size:14.5px}
-nav a.on{background:#eef2ff;color:#1e3a8a;font-weight:600}nav a:hover{background:#f1f1ec}
-.badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:#f79009;color:#fff;font-size:12px;font-weight:700;text-align:center}
-.subnav{display:flex;gap:4px;flex-wrap:wrap;margin:-6px 0 18px}.subnav a{font-size:13.5px;padding:5px 11px;border-radius:999px;background:#ecece6;color:#3b3b37;text-decoration:none}
-.subnav a.on{background:#1d4ed8;color:#fff}
-.who{font-size:13px;color:#666;display:flex;gap:8px;align-items:center}
-main{max-width:1180px;margin:0 auto;padding:22px 24px 70px}h1{font-size:23px;margin:0 0 4px}
-p.lead{color:#5b5b56;margin:0 0 18px;max-width:780px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
-.card{background:#fff;border:1px solid #e4e4df;border-radius:12px;padding:14px 16px;text-decoration:none;color:inherit;display:block}
-.card b{display:block;font-size:26px;font-weight:650}.card span{color:#66665f;font-size:13px}.card.hot{border-color:#fdb022;background:#fffcf5}
-section{background:#fff;border:1px solid #e4e4df;border-radius:12px;padding:18px 20px;margin-bottom:18px}
-section h2{font-size:16.5px;margin:0 0 6px}p.hint{color:#66665f;margin:0 0 12px;font-size:13.5px}
-.tbl{overflow-x:auto}table{width:100%;border-collapse:collapse}
-th{text-align:left;font-weight:600;color:#5b5b56;font-size:12.5px;border-bottom:1px solid #e4e4df;padding:7px 8px}
-td{border-bottom:1px solid #f0f0eb;padding:9px 8px;vertical-align:top}td.dom{font-weight:600;overflow-wrap:anywhere;min-width:160px}
-.what{max-width:300px}.mut{color:#85857e;font-size:12.5px}
-.pill{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12.5px;border:1px solid;margin:0 4px 4px 0;cursor:pointer;background:#fff;font-family:inherit}
-.on-b{color:#b42318;border-color:#f4b9b3;background:#fef3f2}.off-b{color:#067647;border-color:#a9dcc0;background:#ecfdf3}
-.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12.5px;background:#eef2ff;color:#3538cd;white-space:nowrap}
-.tag.nd{background:#f1f1ec;color:#4b4b47}.st{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12.5px;background:#f1f1ec}
-.st.ok{background:#ecfdf3;color:#067647}.st.bad{background:#fef3f2;color:#b42318}.st.run{background:#fffaeb;color:#b54708}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs a{font-size:13.5px;padding:5px 12px;border-radius:999px;border:1px solid #d3d3cd;color:#3b3b37;text-decoration:none;background:#fff}
-.tabs a.on{background:#1d1d1b;border-color:#1d1d1b;color:#fff}
-button,.btn{white-space:nowrap;font:inherit;font-size:13.5px;border:1px solid #d3d3cd;background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;color:#1d1d1b;text-decoration:none;display:inline-block}
-button:hover,.btn:hover{background:#f6f6f3}button.primary,.btn.primary{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
-button.primary:hover{background:#1e40af}button.danger{color:#b42318;border-color:#f4b9b3}button.ok{color:#067647;border-color:#a9dcc0}
-button.small{padding:3px 10px;font-size:12.5px}form.inline{display:inline}label{font-size:13.5px}
-input[type=text],input[type=password],input[type=number],input[type=search],select,textarea{font:inherit;font-size:14.5px;border:1px solid #d3d3cd;border-radius:8px;padding:7px 10px;width:100%;background:#fff;color:#1d1d1b}
-input:focus,textarea:focus,select:focus{outline:2px solid #bfdbfe;border-color:#1d4ed8}
-.field{margin-bottom:14px}.field>label{display:block;font-weight:600;margin-bottom:4px}.field .mut{display:block;margin-top:3px}
+body{margin:0;font:14.5px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+a{color:var(--pri);text-decoration:none}a:hover{text-decoration:underline}
+.app{display:flex;min-height:100vh}
+.side{width:240px;flex:none;background:#fff;border-right:1px solid var(--line);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:18px 12px 14px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--ink);padding:2px 10px 14px;letter-spacing:-.01em}
+.brand:hover{text-decoration:none}.logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(140deg,#4f8df9,#1d4ed8);display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.logo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.side nav{display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto}
+.side h6{margin:18px 10px 6px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mut)}
+.side nav a{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:9px;color:var(--ink2);font-weight:500;white-space:nowrap;transition:background .25s var(--ease),color .25s var(--ease)}
+.side nav a:hover{background:#f3f5f9;color:var(--ink);text-decoration:none}.side nav a.on{background:var(--pri-s);color:var(--pri-d)}
+.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.side nav a .badge{margin-left:auto}
+.badge{display:inline-block;min-width:20px;padding:1px 7px;border-radius:999px;background:#f59e0b;color:#fff;font-size:11.5px;font-weight:700;text-align:center;line-height:1.5}
+.who{border-top:1px solid var(--line);margin-top:10px;padding:12px 6px 0 10px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2)}
+.me{width:28px;height:28px;border-radius:50%;background:#e8eefb;color:var(--pri-d);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.who form{margin-left:auto}
+.content{flex:1;min-width:0}main{max-width:1200px;margin:0 auto;padding:30px 36px 80px}
+.head{margin-bottom:22px}.head p.lead{margin:0}h1{font-size:25px;line-height:1.2;margin:0 0 6px;letter-spacing:-.02em}
+p.lead{color:var(--ink2);margin:0 0 22px;max-width:780px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;color:inherit;display:flex;gap:14px;align-items:center;box-shadow:var(--sh);transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.card:hover{text-decoration:none;transform:translateY(-2px);box-shadow:0 1px 2px rgba(19,25,38,.05),0 12px 24px -12px rgba(19,25,38,.18)}
+.card .ib{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:none;background:var(--pri-s);color:var(--pri-d)}
+.card .ib.r{background:var(--red-s);color:var(--red)}.card .ib.a{background:var(--amb-s);color:var(--amb)}.card .ib.g{background:var(--grn-s);color:var(--grn)}
+.card b{display:block;font-size:24px;font-weight:700;line-height:1.1;letter-spacing:-.02em}.card span{color:var(--mut);font-size:13px}
+.card.hot{border-color:var(--amb-l);background:linear-gradient(180deg,#fffaf0,#fff)}
+section{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;margin-bottom:20px;box-shadow:var(--sh)}
+section h2{font-size:16px;margin:0 0 4px;letter-spacing:-.01em}p.hint{color:var(--mut);margin:0 0 14px;font-size:13.5px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.toolbar form{margin-left:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.chips .lbl{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-right:4px;min-width:62px}
+.chip{font-size:13px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);background:#fff;transition:all .25s var(--ease)}
+.chip span{color:var(--mut);font-size:12px;margin-left:3px}.chip:hover{text-decoration:none;border-color:#cfd5e0;background:#f8f9fb}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}.chip.on span{color:#c9cfdb}
+.tabs{display:inline-flex;gap:2px;padding:3px;background:#eef1f5;border-radius:11px;flex-wrap:wrap}
+.tabs a{font-size:13.5px;padding:5px 12px;border-radius:8px;color:var(--ink2);font-weight:500;transition:all .25s var(--ease)}
+.tabs a:hover{color:var(--ink);text-decoration:none}.tabs a.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(19,25,38,.08),0 1px 6px -2px rgba(19,25,38,.08)}
+.tbl{overflow-x:auto;margin:0 -22px;border-top:1px solid var(--line2)}table{width:100%;border-collapse:collapse}
+th{white-space:nowrap;text-align:left;font-weight:600;color:var(--mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--line);padding:9px 10px;background:#fafbfc}
+td{border-bottom:1px solid var(--line2);padding:12px 10px;vertical-align:top}th:first-child,td:first-child{padding-left:22px}th:last-child,td:last-child{padding-right:22px}
+tbody tr{transition:background .2s var(--ease)}tbody tr:last-child td{border-bottom:0}td.devs{min-width:250px}tbody tr:hover{background:#fafbfd}
+tr.grp td{background:#f6f8fb;font-size:12px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;padding-top:8px;padding-bottom:8px}
+tr.grp td span{font-weight:500;color:var(--mut);margin-left:8px;letter-spacing:0}
+td.dom{min-width:260px;max-width:460px}.site{display:flex;gap:12px;align-items:flex-start}
+.av{width:32px;height:32px;border-radius:9px;flex:none;display:grid;place-items:center;font-weight:700;font-size:13.5px;text-transform:uppercase;
+color:hsl(var(--h) 55% 34%);background:hsl(var(--h) 70% 94%);box-shadow:inset 0 0 0 1px hsl(var(--h) 50% 86%)}
+.sm{min-width:0}.dn{font-weight:600;overflow-wrap:anywhere;color:var(--ink)}.tt{color:var(--ink2);font-size:13.5px}
+.ds{color:var(--mut);font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ai{color:#7c5cdb;font-size:11px;margin-right:4px}.mut{color:var(--mut);font-size:12.5px}.empty{color:var(--mut);padding:26px 0 6px;text-align:center}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:12.5px;border:1px solid;margin:0 4px 5px 0;cursor:pointer;background:#fff;font-family:inherit;font-weight:500;transition:all .25s var(--ease)}
+.pill:active{transform:scale(.97)}.on-b{color:var(--red);border-color:var(--red-l);background:var(--red-s)}.off-b{color:var(--grn);border-color:var(--grn-l);background:var(--grn-s)}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12.5px;background:var(--pri-s);color:#3045c8;white-space:nowrap;font-weight:500}
+.tag.nd{background:#f0f2f5;color:var(--ink2)}.st{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12.5px;background:#f0f2f5;font-weight:500}
+.st.ok{background:var(--grn-s);color:var(--grn)}.st.bad{background:var(--red-s);color:var(--red)}.st.run{background:var(--amb-s);color:var(--amb)}
+button,.btn{white-space:nowrap;font:inherit;font-size:13.5px;font-weight:500;border:1px solid #d8dde6;background:#fff;border-radius:9px;padding:6px 13px;cursor:pointer;color:var(--ink);display:inline-block;transition:all .25s var(--ease)}
+button:hover,.btn:hover{background:#f6f7fa;text-decoration:none}button:active,.btn:active{transform:scale(.98)}
+button.primary,.btn.primary{background:var(--pri);border-color:var(--pri);color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.25),inset 0 1px 0 rgba(255,255,255,.15)}
+button.primary:hover{background:var(--pri-d)}button.danger{color:var(--red);border-color:var(--red-l)}button.danger:hover{background:var(--red-s)}
+button.ok{color:var(--grn);border-color:var(--grn-l)}button.ok:hover{background:var(--grn-s)}
+button.small{padding:3px 10px;font-size:12.5px;border-radius:8px}form.inline{display:inline}label{font-size:13.5px}
+input[type=text],input[type=password],input[type=number],input[type=search],select,textarea{font:inherit;font-size:14px;border:1px solid #d8dde6;border-radius:9px;padding:7px 11px;width:100%;background:#fff;color:var(--ink);transition:border-color .2s var(--ease),box-shadow .2s var(--ease)}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.field{margin-bottom:14px}.field>label{display:block;font-weight:600;margin-bottom:5px}.field .mut{display:block;margin-top:4px}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 18px}
 .banner{border-radius:12px;padding:13px 16px;margin-bottom:16px;border:1px solid}
-.bad{background:#fef3f2;border-color:#f4b9b3;color:#7a271a}.good{background:#ecfdf3;border-color:#a9dcc0;color:#054f31}
-.info{background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a}.warn{background:#fffaeb;border-color:#fedf89;color:#7a2e0e}
+.bad{background:var(--red-s);border-color:var(--red-l);color:#7a271a}.good{background:var(--grn-s);border-color:var(--grn-l);color:#0b4d31}
+.info{background:#eff5ff;border-color:#c7dafd;color:#1e3a8a}.warn{background:var(--amb-s);border-color:var(--amb-l);color:#6e3608}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.right{margin-left:auto}
-.pager{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13.5px;color:#5b5b56}
+.pager{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:14px;font-size:13px;color:var(--mut)}
 .choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:14px}
-.choice{border:1px solid #d3d3cd;border-radius:10px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start;cursor:pointer;background:#fff}
-.choice:has(input:checked){border-color:#1d4ed8;background:#eff6ff}.choice small{display:block;color:#66665f}
-.setup{max-width:760px;margin:30px auto;padding:0 18px}.steps{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
-.steps span{font-size:12.5px;padding:4px 10px;border-radius:999px;background:#ecece6;color:#5b5b56}.steps span.on{background:#1d4ed8;color:#fff}
-.steps span.done{background:#d1fadf;color:#05603a}code{background:#f1f1ec;border-radius:5px;padding:1px 5px;font-size:12.5px}
-details summary{cursor:pointer;color:#4b4b47;font-weight:600}
-@media (max-width:640px){main{padding:16px 12px 60px}.bar{padding:8px 12px}section{padding:14px}}
+.choice{border:1px solid #d8dde6;border-radius:11px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start;cursor:pointer;background:#fff;transition:all .25s var(--ease)}
+.choice:has(input:checked){border-color:var(--pri);background:var(--pri-s)}.choice small{display:block;color:var(--mut)}
+.setup{max-width:760px;margin:36px auto;padding:0 18px}.setup .brand{padding-left:0;font-size:19px}
+.steps{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.steps span{font-size:12.5px;padding:4px 10px;border-radius:999px;background:#e9edf3;color:var(--ink2)}.steps span.on{background:var(--pri);color:#fff}
+.steps span.done{background:var(--grn-s);color:var(--grn)}code{background:#f0f2f5;border-radius:5px;padding:1px 5px;font-size:12.5px}
+details summary{cursor:pointer;color:var(--ink2);font-weight:600}
+@media (max-width:900px){.app{flex-direction:column}
+.side{width:auto;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 12px 0;border-right:0;border-bottom:1px solid var(--line);z-index:5}
+.brand{padding:2px 6px 8px}.side nav{flex-direction:row;flex-basis:100%;order:3;overflow-x:auto;padding-bottom:8px}.side h6{display:none}
+.who{border:0;margin:0 0 8px auto;padding:0}main{padding:20px 14px 60px}.tbl{margin:0 -16px}section{padding:16px}
+th:first-child,td:first-child{padding-left:16px}th:last-child,td:last-child{padding-right:16px}.toolbar form{margin-left:0;width:100%}}
 """
-NAV = [("/", "Home"), ("/blocked", "Blocked"), ("/review", "To check"), ("/checked", "Other sites"), ("/allowed", "Fine sites"), ("/settings", "Settings")]
-SUB = [("/settings", "Connections"), ("/topics", "What to block"), ("/users", "People"), ("/hidden", "Hidden sites"),
-       ("/activity", "History"), ("/runs", "Checks")]
+ICONS = {
+    "shield": '<path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+    "home": '<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11.5h13V9"/><path d="M10 20.5v-6h4v6"/>',
+    "ban": '<circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/>',
+    "ask": '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.4"/><path d="M12 16.8h.01"/>',
+    "globe": '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5"/>',
+    "ok": '<circle cx="12" cy="12" r="8.5"/><path d="m8.2 12.2 2.6 2.6 5-5.3"/>',
+    "eye": '<path d="m3.5 3.5 17 17"/><path d="M10.3 5.7A9 9 0 0 1 12 5.5c4.6 0 8 4 8.9 6.5-.4 1-1.1 2.2-2.1 3.3"/><path d="M6.7 7.1C4.8 8.4 3.6 10.3 3.1 12c.9 2.5 4.3 6.5 8.9 6.5 1.6 0 3-.5 4.3-1.2"/><path d="M10 10a2.8 2.8 0 0 0 4 4"/>',
+    "clock": '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    "pulse": '<path d="M3.5 12h3.5l2.5-6.5 5 13 2.5-6.5h3.5"/>',
+    "plug": '<path d="M9 3.5v4M15 3.5v4"/><path d="M6.5 7.5h11V11a5.5 5.5 0 0 1-11 0z"/><path d="M12 16.5v4"/>',
+    "sliders": '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+    "users": '<circle cx="9" cy="8.5" r="3.3"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M15.5 5.3a3.3 3.3 0 0 1 0 6.4M17.5 14a6 6 0 0 1 3.5 5.5"/>',
+}
+icon = lambda k, cls="ico": f'<svg class="{cls}" viewBox="0 0 24 24" aria-hidden="true">{ICONS[k]}</svg>'
+LOGO = f'<span class="logo">{icon("shield", "")}</span>'
+NAV = [("", [("/", "Home", "home"), ("/blocked", "Blocked", "ban"), ("/review", "To check", "ask"), ("/checked", "Other sites", "globe"),
+             ("/allowed", "Fine sites", "ok"), ("/hidden", "Hidden sites", "eye")]),
+       ("Activity", [("/activity", "History", "clock"), ("/runs", "Checks", "pulse")]),
+       ("Settings", [("/settings", "Connections", "plug"), ("/topics", "What to block", "sliders"), ("/users", "People", "users")])]
 
 def doc(title, body, refresh=0):
     meta = f'<meta http-equiv="refresh" content="{refresh}">' if refresh else ""
@@ -109,16 +164,17 @@ def count(con, where, *a): return con.execute(f"SELECT count(*) FROM domains WHE
 def layout(ctx, title, body, active="", refresh=0):
     con, u = ctx["con"], ctx["user"]
     todo = count(con, f"({REVIEW})")
-    top = "/settings" if active in {p for p, _ in SUB} else active
-    nav = "".join(f'<a href="{p}" class="{"on" if p == top else ""}">{n}{f" <span class=badge>{todo}</span>" if p == "/review" and todo else ""}</a>'
-                  for p, n in NAV)
-    sub = ('<div class="subnav">' + "".join(f'<a href="{p}" class="{"on" if p == active else ""}">{n}</a>' for p, n in SUB) + "</div>") if top == "/settings" else ""
-    who = (f'<div class="who">{esc(u["username"])}<form class="inline" method="post" action="/logout">{csrf(ctx)}'
-           f'<button class="small">Log out</button></form></div>') if u else ""
+    nav = "".join((f"<h6>{h}</h6>" if h else "") + "".join(
+        f'<a href="{p}" class="{"on" if p == active else ""}">{icon(i)}{n}{f" <span class=badge>{todo}</span>" if p == "/review" and todo else ""}</a>'
+        for p, n, i in items) for h, items in NAV)
+    who = (f'<div class="who"><span class="me">{esc(u["username"][:1].upper())}</span>{esc(u["username"])}'
+           f'<form class="inline" method="post" action="/logout">{csrf(ctx)}<button class="small">Log out</button></form></div>') if u else ""
     dry = ('<div class="banner warn"><b>Trial mode is on</b> — Autoguard shows what it <i>would</i> block but doesn’t block anything yet. '
            'Turn it off in <a href="/settings#schedule">Settings</a> when you’re happy.</div>') if S.get(con, "dry_run") == "1" else ""
-    return doc(title, f'<header><div class="bar"><a class="brand" href="/">🛡️ Autoguard</a><nav>{nav}</nav>{who}</div></header>'
-                      f'<main>{sub}{dry}{flash(ctx)}{body}</main>', refresh)
+    return doc(title, f'<div class="app"><aside class="side"><a class="brand" href="/">{LOGO}Autoguard</a><nav>{nav}</nav>{who}</aside>'
+                      f'<div class="content"><main>{dry}{flash(ctx)}{body}</main></div></div>', refresh)
+
+def head(title, lead=""): return f'<div class="head"><h1>{title}</h1>{f"<p class=lead>{lead}</p>" if lead else ""}</div>'
 
 def csrf(ctx): return f'<input type="hidden" name="csrf" value="{esc((ctx.get("user") or {}).get("csrf", ""))}">'
 
@@ -132,34 +188,85 @@ def paging(ctx):
     except ValueError: page = 1
     return page, (ctx["q"].get("q") or "").strip().lower()
 
+def here(ctx):
+    """This page with its filters (minus the flash) — where an action button should come back to."""
+    q = {k: v for k, v in ctx["q"].items() if k != "msg"}
+    return ctx["path"] + ("?" + urlencode(q) if q else "")
+
 def pager(path, page, total, q, keep=None):
     pages = max(1, math.ceil(total / PAGE)); base = {**(keep or {}), **({"q": q} if q else {})}
     link = lambda p, t: f'<a class="btn" href="{path}?{urlencode({**base, "page": p})}">{t}</a>'
-    return (f'<div class="pager">{link(page - 1, "← Previous") if page > 1 else ""}'
-            f'<span>Page {min(page, pages)} of {pages} · {total} total</span>{link(page + 1, "Next →") if page < pages else ""}</div>')
+    return (f'<div class="pager"><span>{link(page - 1, "← Previous") if page > 1 else ""}</span>'
+            f'<span>Page {min(page, pages)} of {pages} · {total} total</span><span>{link(page + 1, "Next →") if page < pages else ""}</span></div>')
 
 def search(path, q, keep=None):
     hid = "".join(f'<input type="hidden" name="{esc(k)}" value="{esc(v)}">' for k, v in (keep or {}).items())
-    return (f'<form method="get" action="{path}" class="row" style="margin-bottom:12px">{hid}<input type="search" name="q" value="{esc(q)}" '
-            f'placeholder="Search for a site…" style="max-width:300px"><button>Search</button>{f"<a href={path}>clear</a>" if q else ""}</form>')
+    return (f'<form method="get" action="{path}" class="row">{hid}<input type="search" name="q" value="{esc(q)}" '
+            f'placeholder="Search sites…" style="width:240px"><button>Search</button>{f"<a href={path}>clear</a>" if q else ""}</form>')
 
-def tabs(path, current, options, q=""):
+def tabs(path, current, options, keep=None):
     return '<div class="tabs">' + "".join(
-        f'<a class="{"on" if k == current else ""}" href="{path}?{urlencode({"show": k, **({"q": q} if q else {})})}">{esc(label)}</a>'
+        f'<a class="{"on" if k == current else ""}" href="{path}?{urlencode({**(keep or {}), "show": k})}">{esc(label)}</a>'
         for k, label in options) + "</div>"
 
 def devices(con): return [dict(r) for r in con.execute("SELECT id, name FROM profiles WHERE enabled=1 ORDER BY name")]
 def topic_labels(con): return {r["id"]: r["label"] for r in con.execute("SELECT id, label FROM topics")}
 
+# ── grouped, searchable site lists (every list page goes through listing → table) ──
+CAT_LABEL = {c: label for c, label, _ in db.CATEGORIES} | {"unsorted": "Not sorted"}
+CAT_RANK = "CASE category " + " ".join(f"WHEN '{c}' THEN {i}" for i, (c, _, _) in enumerate(db.CATEGORIES)) + " ELSE 99 END"
+
+def listing(ctx, where, wargs=(), order="last_seen DESC"):
+    """One page of `domains` rows matching `where`: search (address, page title, AI one-liner), group filter (?cat=),
+    rows ordered group-first so a page reads as sections. Counts per group feed the chips and section headers."""
+    con = ctx["con"]; page, q = paging(ctx); like = f"%{q}%"
+    base = f"FROM domains WHERE ({where}) AND (domain LIKE ? OR COALESCE(title,'') LIKE ? OR COALESCE(about,'') LIKE ?)"
+    args = (*wargs, like, like, like)
+    counts = {(r[0] or "unsorted"): r[1] for r in con.execute(f"SELECT category, count(*) {base} GROUP BY category", args)}
+    cat = ctx["q"].get("cat", ""); cat = cat if cat in counts else ""
+    cw, ca = ("", ()) if not cat else (" AND category IS NULL", ()) if cat == "unsorted" else (" AND category=?", (cat,))
+    rows = con.execute(f"SELECT * {base}{cw} ORDER BY {CAT_RANK}, {order} LIMIT ? OFFSET ?", (*args, *ca, PAGE, (page - 1) * PAGE)).fetchall()
+    return {"page": page, "q": q, "cat": cat, "counts": counts, "total": counts[cat] if cat else sum(counts.values()), "rows": rows}
+
+def groups(path, L, keep):
+    c = L["counts"]
+    if len(c) < 2: return ""
+    base = {**keep, **({"q": L["q"]} if L["q"] else {})}
+    link = lambda k, n: (f'<a class="chip{" on" if k == L["cat"] else ""}" href="{path}?{urlencode({**base, **({"cat": k} if k else {})})}">'
+                         f'{esc(CAT_LABEL.get(k, "All"))}<span>{n}</span></a>')
+    order = [k for k, _, _ in db.CATEGORIES] + ["unsorted"]
+    return '<div class="chips"><span class="lbl">Groups</span>' + link("", sum(c.values())) + "".join(link(k, c[k]) for k in order if k in c) + "</div>"
+
+def table(cols, L, row, empty):
+    if not L["rows"]: return f'<p class="empty">{empty}</p>'
+    grouped, last, out = len(L["counts"]) > 1 and not L["cat"], None, []
+    for r in L["rows"]:
+        k = r["category"] or "unsorted"
+        if grouped and k != last:
+            last = k; out.append(f'<tr class="grp"><td colspan="{len(cols)}">{esc(CAT_LABEL.get(k, "Other"))}<span>{L["counts"].get(k, 0)}</span></td></tr>')
+        out.append(row(r))
+    return (f'<div class="tbl"><table><thead><tr>{"".join(f"<th>{c}</th>" for c in cols)}</tr></thead>'
+            f'<tbody>{"".join(out)}</tbody></table></div>')
+
+def filters(path, L, keep, left=""):
+    return f'<div class="toolbar">{left}{search(path, L["q"], {**keep, **({"cat": L["cat"]} if L["cat"] else {})})}</div>{groups(path, L, keep)}'
+
+def footer(path, L, keep):
+    return pager(path, L["page"], L["total"], L["q"], {**keep, **({"cat": L["cat"]} if L["cat"] else {})})
+
 # ── row cells ───────────────────────────────────────────────────────────────
 def site(r):
-    s = [x for x in json.loads(r["samples"] or "[]") if x != r["domain"]]
+    """Address + what it is: homepage title, meta description, and the AI's one-liner (✦) when the page says little
+    (background services have no homepage — the one-liner is all a parent gets)."""
+    d = r["domain"]; s = [x for x in json.loads(r["samples"] or "[]") if x != d]
     tip = f' title="{esc("Also looked up as: " + ", ".join(s[:5]))}"' if s else ""
-    return f'<td class="dom"{tip}>{esc(r["domain"])}</td>'
-
-def what(r):
-    return (f'<td class="what">{esc(r["title"])}</td>' if r["title"]
-            else '<td class="what"><span class="mut">No description available</span></td>')
+    title = r["title"] if guard.has_site(r["title"]) else None
+    about = f'<span class="ai" title="Summary written by the AI">✦</span>{esc(r["about"])}' if r["about"] else ""
+    line1 = esc(title) if title else about or '<span class="mut">No description available</span>'
+    line2 = esc(r["description"]) if r["description"] else (about if title else "")
+    hue = sum(map(ord, d)) * 37 % 360
+    return (f'<td class="dom"{tip}><div class="site"><span class="av" style="--h:{hue}">{esc(d[:1])}</span><div class="sm">'
+            f'<div class="dn">{esc(d)}</div><div class="tt">{line1}</div>{f"<div class=ds>{line2}</div>" if line2 else ""}</div></div></td>')
 
 def why(r, tl, src="auto"):
     lab = tl.get(r["topic"]) if r["topic"] else None
@@ -174,9 +281,9 @@ def why(r, tl, src="auto"):
     return f'<td>{head}{f"<div class=mut>{esc(reason)}</div>" if reason else ""}</td>'
 
 def visited(r):
-    if not r["last_seen"] or not r["hits"]: return '<td><span class="mut">Not visited recently</span></td>'
+    if not r["last_seen"] or not r["hits"]: return '<td style="white-space:nowrap"><span class="mut">Not visited recently</span></td>'
     n, b = r["hits"], r["bedtime_hits"]
-    return f'<td>{ago(r["last_seen"])}<div class="mut">{n} time{"s" if n != 1 else ""}{f" · {b} at night" if b else ""}</div></td>'
+    return f'<td style="white-space:nowrap">{ago(r["last_seen"])}<div class="mut">{n} time{"s" if n != 1 else ""}{f" · {b} at night" if b else ""}</div></td>'
 
 def pills(ctx, d, profs, state, back):
     out = []
@@ -196,7 +303,7 @@ def overview(ctx):
     running = con.execute("SELECT * FROM runs WHERE status='running' ORDER BY id DESC LIMIT 1").fetchone()
     last = con.execute("SELECT * FROM runs WHERE status!='running' ORDER BY id DESC LIMIT 1").fetchone()
     devs, todo = len(devices(con)), count(con, f"({REVIEW})")
-    H = []
+    H = [head("Home")]
     if running:
         H.append(f'<div class="banner info"><b>Checking now…</b> {esc(running["phase"] or "")}. This page updates by itself.</div>')
     elif last and last["status"] in ("llm_error", "failed", "partial", "interrupted"):
@@ -210,18 +317,19 @@ def overview(ctx):
         H.append(f'<div class="banner warn"><b>{todo} site{"s" if todo != 1 else ""} need{"s" if todo == 1 else ""} your decision.</b> '
                  f'Autoguard isn’t sure about {"it" if todo == 1 else "them"}. <a href="/review">Have a look →</a></div>')
     week = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    cards = [("Sites blocked", n("SELECT count(DISTINCT domain) FROM blocks WHERE state='blocked'"), "/blocked", False),
-             ("New blocks this week", n("SELECT count(DISTINCT domain) FROM actions WHERE actor='autoguard' AND action='block' AND ts>=?", week), "/blocked?show=auto", False),
-             ("To check", todo, "/review", bool(todo)),
-             ("Fine sites", count(con, "verdict='owner_ok'"), "/allowed", False)]
-    H.append('<div class="cards">' + "".join(f'<a class="card{" hot" if hot else ""}" href="{h}"><b>{v}</b><span>{k}</span></a>' for k, v, h, hot in cards) + "</div>")
+    cards = [("Sites blocked", n("SELECT count(DISTINCT domain) FROM blocks WHERE state='blocked'"), "/blocked", "ban", "r"),
+             ("New blocks this week", n("SELECT count(DISTINCT domain) FROM actions WHERE actor='autoguard' AND action='block' AND ts>=?", week), "/blocked?show=auto", "shield", ""),
+             ("To check", todo, "/review", "ask", "a"),
+             ("Fine sites", count(con, "verdict='owner_ok'"), "/allowed", "ok", "g")]
+    H.append('<div class="cards">' + "".join(f'<a class="card{" hot" if k == "To check" and v else ""}" href="{h}"><span class="ib {c}">{icon(i)}</span>'
+                                             f'<div><b>{v}</b><span>{k}</span></div></a>' for k, v, h, i, c in cards) + "</div>")
     rows = con.execute("""SELECT d.* FROM domains d WHERE EXISTS (SELECT 1 FROM blocks b WHERE b.domain=d.domain AND b.state='blocked' AND b.source='auto')
                           ORDER BY d.decided_at DESC LIMIT 8""").fetchall()
     tl = topic_labels(con)
-    H.append('<section><div class="row"><h2>Recently blocked by Autoguard</h2><a class="right" href="/blocked">See everything blocked →</a></div>'
-             '<div class="tbl"><table><tr><th>Site</th><th>What it is</th><th>Why</th><th>Last visited</th></tr>'
-             + "".join(f"<tr>{site(r)}{what(r)}{why(r, tl)}{visited(r)}</tr>" for r in rows) + "</table></div>"
-             + ("" if rows else '<p class="mut">Nothing new yet — that’s good news. Autoguard checks every new site your children visit.</p>') + "</section>")
+    H.append('<section><div class="row" style="margin-bottom:12px"><h2>Recently blocked by Autoguard</h2><a class="right" href="/blocked">See everything blocked →</a></div>'
+             + (('<div class="tbl"><table><thead><tr><th>Site</th><th>Why</th><th>Last visited</th></tr></thead><tbody>'
+                 + "".join(f"<tr>{site(r)}{why(r, tl)}{visited(r)}</tr>" for r in rows) + "</tbody></table></div>") if rows else
+                '<p class="empty">Nothing new yet — that’s good news. Autoguard checks every new site your children visit.</p>') + "</section>")
     other = count(con, OTHER)
     H.append(f'<div class="row">{button(ctx, "/action", "Check now", [("op", "run")], "primary")}'
              f'<span class="mut">Autoguard checks by itself every {esc(S.get(con, "scan_interval_hours"))} hours. '
@@ -232,34 +340,39 @@ def overview(ctx):
 BLOCKED_TABS = [("all", "Everything"), ("auto", "Found by Autoguard"), ("owner", "Blocked by you"), ("nextdns", "On your NextDNS list")]
 
 def blocked(ctx):
-    con = ctx["con"]; page, q = paging(ctx); like = f"%{q}%"
+    con = ctx["con"]; profs, tl = devices(con), topic_labels(con)
     show = ctx["q"].get("show", "all"); show = show if show in dict(BLOCKED_TABS) else "all"
-    cond, args = ("", []) if show == "all" else (" AND b.source=?", [show])
-    base = f"FROM domains d WHERE EXISTS (SELECT 1 FROM blocks b WHERE b.domain=d.domain AND b.state='blocked'{cond}) AND d.domain LIKE ?"
-    total = con.execute(f"SELECT count(*) {base}", (*args, like)).fetchone()[0]
-    rows = con.execute(f"SELECT d.* {base} ORDER BY COALESCE(d.decided_at, d.first_seen) DESC, d.domain LIMIT ? OFFSET ?",
-                       (*args, like, PAGE, (page - 1) * PAGE)).fetchall()
-    profs, tl = devices(con), topic_labels(con)
-    ds = [r["domain"] for r in rows]
+    dev = ctx["q"].get("device", ""); dev = dev if dev in {p["id"] for p in profs} else ""
+    cond, args = "", []
+    if show != "all": cond += " AND b.source=?"; args.append(show)
+    if dev: cond += " AND b.profile=?"; args.append(dev)
+    L = listing(ctx, f"EXISTS (SELECT 1 FROM blocks b WHERE b.domain=domains.domain AND b.state='blocked'{cond})", args,
+                "COALESCE(decided_at, first_seen) DESC, domain")
+    ds = [r["domain"] for r in L["rows"]]
     st = con.execute(f"SELECT domain, profile, state, source FROM blocks WHERE domain IN ({','.join('?' * len(ds))})", ds).fetchall() if ds else []
     state = {(r["domain"], r["profile"]): r["state"] for r in st}
     srcs = {}
     for r in st:
         if r["state"] == "blocked": srcs.setdefault(r["domain"], set()).add(r["source"])
     src = lambda d: next((s for s in ("auto", "owner", "nextdns") if s in srcs.get(d, ())), "auto")
-    allp = [("profile", p["id"]) for p in profs]
-    back = f"/blocked?{urlencode({'show': show, 'page': page, **({'q': q} if q else {})})}"
-    body = ['<h1>Blocked sites</h1><p class="lead">These sites can’t be opened on your children’s devices. Each device is a button: '
-            '<b>⛔ red = blocked there</b>, <b>✓ green = allowed there</b> — click to change it for that device only. '
-            'Autoguard remembers what you choose.</p><section>', tabs("/blocked", show, BLOCKED_TABS, q),
-            search("/blocked", q, {"show": show}),
-            '<div class="tbl"><table><tr><th>Site</th><th>What it is</th><th>Why it’s blocked</th><th>Last visited</th><th>Devices</th><th></th></tr>']
-    for r in rows:
-        body.append(f'<tr>{site(r)}{what(r)}{why(r, tl, src(r["domain"]))}{visited(r)}<td>{pills(ctx, r["domain"], profs, state, back)}</td>'
-                    f'<td>{button(ctx, "/action", "Allow everywhere", [("op", "unblock"), ("domain", r["domain"]), ("back", back)] + allp, "small")}</td></tr>')
-    body.append("</table></div>" + ("" if rows else '<p class="mut">Nothing here.</p>') + pager("/blocked", page, total, q, {"show": show}) + "</section>")
+    allp, back = [("profile", p["id"]) for p in profs], here(ctx)
+    keep = {"show": show, **({"device": dev} if dev else {})}
+    per = {r[0]: r[1] for r in con.execute("SELECT profile, count(DISTINCT domain) FROM blocks WHERE state='blocked' GROUP BY profile")}
+    dlink = lambda pid, label, n: (f'<a class="chip{" on" if pid == dev else ""}" href="/blocked?'
+                                   f'{urlencode({"show": show, **({"device": pid} if pid else {}), **({"q": L["q"]} if L["q"] else {})})}">'
+                                   f'{esc(label)}{f"<span>{n}</span>" if n is not None else ""}</a>')
+    devbar = ('<div class="chips"><span class="lbl">Device</span>' + dlink("", "All devices", None)
+              + "".join(dlink(p["id"], p["name"], per.get(p["id"], 0)) for p in profs) + "</div>") if len(profs) > 1 else ""
+    def row(r):
+        return (f'<tr>{site(r)}{why(r, tl, src(r["domain"]))}{visited(r)}<td class="devs">{pills(ctx, r["domain"], profs, state, back)}</td>'
+                f'<td>{button(ctx, "/action", "Allow everywhere", [("op", "unblock"), ("domain", r["domain"]), ("back", back)] + allp, "small")}</td></tr>')
+    body = [head("Blocked sites", "These sites can’t be opened on your children’s devices. Each device is a button: "
+                 "<b>⛔ red = blocked there</b>, <b>✓ green = allowed there</b> — click to change it for that device only. "
+                 "Autoguard remembers what you choose."),
+            '<section>', filters("/blocked", L, keep, tabs("/blocked", show, BLOCKED_TABS, {k: v for k, v in keep.items() if k != "show"} | ({"q": L["q"]} if L["q"] else {}))),
+            devbar, table(["Site", "Why it’s blocked", "Last visited", "Devices", ""], L, row, "Nothing here."), footer("/blocked", L, keep), "</section>"]
     if show == "nextdns" or (show == "all" and any(src(d) == "nextdns" for d in ds)):
-        body.append('<p class="mut">“On your NextDNS block list” means it was already blocked in your NextDNS account before Autoguard. '
+        body.append('<p class="mut" style="margin:-8px 0 18px">“On your NextDNS block list” means it was already blocked in your NextDNS account before Autoguard. '
                     'Allowing it here removes it from that list too.</p>')
     body.append(f'<section id="add"><h2>Block a site yourself</h2><p class="hint">Type the site’s address, for example <code>badsite.com</code>. '
                 f'Its pages and sub-sites are blocked too.</p>'
@@ -270,49 +383,46 @@ def blocked(ctx):
     return layout(ctx, "Blocked", "".join(body), "/blocked")
 
 # ── list pages ──────────────────────────────────────────────────────────────
-def simple_list(ctx, path, title, lead, where, order, cols, row, empty, top="", keep=None, wargs=()):
-    con = ctx["con"]; page, q = paging(ctx); like = f"%{q}%"
-    total = con.execute(f"SELECT count(*) FROM domains WHERE ({where}) AND domain LIKE ?", (*wargs, like)).fetchone()[0]
-    rows = con.execute(f"SELECT * FROM domains WHERE ({where}) AND domain LIKE ? ORDER BY {order} LIMIT ? OFFSET ?",
-                       (*wargs, like, PAGE, (page - 1) * PAGE)).fetchall()
-    tl, profs = topic_labels(con), devices(con)
-    body = (f'<h1>{title}</h1><p class="lead">{lead}</p><section>{top}{search(path, q, keep)}<div class="tbl"><table><tr>'
-            + "".join(f"<th>{c}</th>" for c in cols) + "</tr>" + "".join(row(r, tl, profs) for r in rows) + "</table></div>"
-            + ("" if rows else f'<p class="mut">{empty}</p>') + pager(path, page, total, q, keep) + "</section>")
-    return layout(ctx, title, body, path), rows
+def simple_list(ctx, path, title, lead, where, order, cols, row, empty, top="", keep=None, wargs=(), left=""):
+    """A grouped list page. `row(r, tl, profs)` renders one site; `top` may be a function of the listing (bulk forms)."""
+    con, keep = ctx["con"], keep or {}
+    L = listing(ctx, where, wargs, order); tl, profs = topic_labels(con), devices(con)
+    body = (head(title, lead) + f'<section>{top(L) if callable(top) else top}{filters(path, L, keep, left)}'
+            + table(cols, L, lambda r: row(r, tl, profs), empty) + footer(path, L, keep) + "</section>")
+    return layout(ctx, title, body, path), L["rows"]
 
 def review(ctx):
+    back = here(ctx)
     def row(r, tl, profs):
         allp = [("profile", p["id"]) for p in profs]; held = r["verdict"] == "block"
-        return (f'<tr>{site(r)}{what(r)}{why(r, tl)}{visited(r)}<td class="row">'
-                f'{button(ctx, "/action", "Block it", [("op", "block"), ("domain", r["domain"]), ("back", "/review")] + allp, "danger small")}'
-                f'{button(ctx, "/action", "It’s fine", [("op", "ok"), ("domain", r["domain"]), ("back", "/review")], "ok small")}'
-                f'{"<div class=mut>Will be blocked at the next check unless you say it’s fine.</div>" if held else ""}</td></tr>')
+        return (f'<tr>{site(r)}{why(r, tl)}{visited(r)}<td><div class="row">'
+                f'{button(ctx, "/action", "Block it", [("op", "block"), ("domain", r["domain"]), ("back", back)] + allp, "danger small")}'
+                f'{button(ctx, "/action", "It’s fine", [("op", "ok"), ("domain", r["domain"]), ("back", back)], "ok small")}'
+                f'</div>{"<div class=mut style=margin-top:6px>Will be blocked at the next check unless you say it’s fine.</div>" if held else ""}</td></tr>')
     return simple_list(ctx, "/review", "To check", "Autoguard thinks these <b>might</b> be a problem but isn’t sure enough to block them. "
                        "You decide: <b>Block it</b> (on every device) or <b>It’s fine</b>. Autoguard remembers and learns from your choices.",
-                       REVIEW, "confidence DESC", ["Site", "What it is", "Why we’re asking", "Last visited", "Your decision"], row,
+                       REVIEW, "confidence DESC", ["Site", "Why we’re asking", "Last visited", "Your decision"], row,
                        "Nothing to check — you’re all caught up. 🎉")[0]
 
 def checked(ctx):
+    back = here(ctx)
     def row(r, tl, profs):
         allp = [("profile", p["id"]) for p in profs]
-        return (f'<tr>{site(r)}{what(r)}{visited(r)}<td class="row">'
-                f'{button(ctx, "/action", "Block", [("op", "block"), ("domain", r["domain"]), ("back", "/checked")] + allp, "danger small")}'
-                f'{button(ctx, "/action", "Fine", [("op", "ok"), ("domain", r["domain"]), ("back", "/checked")], "ok small", "Move to Fine sites")}'
-                f'{button(ctx, "/action", "Hide", [("op", "hide"), ("domain", r["domain"]), ("back", "/checked")], "small", "Not a real website — never show it again")}</td></tr>')
+        return (f'<tr>{site(r)}{visited(r)}<td><div class="row">'
+                f'{button(ctx, "/action", "Block", [("op", "block"), ("domain", r["domain"]), ("back", back)] + allp, "danger small")}'
+                f'{button(ctx, "/action", "Fine", [("op", "ok"), ("domain", r["domain"]), ("back", back)], "ok small", "Move to Fine sites")}'
+                f'{button(ctx, "/action", "Hide", [("op", "hide"), ("domain", r["domain"]), ("back", back)], "small", "Not a real website — never show it again")}</div></td></tr>')
     con = ctx["con"]; hidden = count(con, f"verdict IN ('ignored','skip') OR ({BACKGROUND}) OR ({NEXTDNS_RULES})")
-    page_html, rows = simple_list(ctx, "/checked", "Other sites",
+    def top(L):   # one click clears the whole page into the Fine list
+        hid = "".join(f'<input type="hidden" name="domain" value="{esc(r["domain"])}">' for r in L["rows"])
+        bulk = (f'<form method="post" action="/action" style="margin:0 0 14px">{csrf(ctx)}<input type="hidden" name="op" value="bulk_ok">'
+                f'<input type="hidden" name="back" value="{esc(back)}">{hid}<button class="ok">✓ All {len(L["rows"])} on this page look fine — clear them</button></form>') if L["rows"] else ""
+        return (f'{bulk}<p class="hint">{hidden} background services (ad servers, app back-ends, load balancers…) and big platforms are hidden. '
+                f'<a href="/hidden">See them</a>.</p>')
+    return simple_list(ctx, "/checked", "Other sites",
         "Websites your children visited that Autoguard checked and thinks are fine. <b>You don’t need to look at these.</b> "
         "If something catches your eye, <b>Block</b> it. Use <b>Fine</b> for sites you know, and <b>Hide</b> for things that aren’t real websites.",
-        OTHER, "last_seen DESC", ["Site", "What it is", "Last visited", ""], row, "Nothing new here.",
-        top=f'<p class="hint">{hidden} background services (ad servers, app back-ends, load balancers…) and big platforms are hidden. '
-            f'<a href="/hidden">See them</a>.</p>')
-    if rows:   # one click to clear the whole page into the Fine list
-        hid = "".join(f'<input type="hidden" name="domain" value="{esc(r["domain"])}">' for r in rows)
-        bulk = (f'<form method="post" action="/action" style="margin:0 0 14px">{csrf(ctx)}<input type="hidden" name="op" value="bulk_ok">'
-                f'<input type="hidden" name="back" value="/checked">{hid}<button class="ok">✓ All {len(rows)} on this page look fine — clear them</button></form>')
-        page_html = page_html.replace('<section><p class="hint">', f'<section>{bulk}<p class="hint">', 1)
-    return page_html
+        OTHER, "last_seen DESC", ["Site", "Last visited", ""], row, "Nothing new here.", top=top)[0]
 
 HIDDEN_TABS = [("mine", "Hidden by you"), ("background", "Background services"), ("nextdns", "Blocked by your NextDNS rules"),
                ("builtin", "Big platforms")]
@@ -320,30 +430,34 @@ HIDDEN_TABS = [("mine", "Hidden by you"), ("background", "Background services"),
 def hidden(ctx):
     show = ctx["q"].get("show", "background"); show = show if show in dict(HIDDEN_TABS) else "background"
     where = {"mine": "verdict='ignored'", "background": BACKGROUND, "nextdns": NEXTDNS_RULES, "builtin": "verdict='skip'"}[show]
+    back = here(ctx)
     def row(r, tl, profs):
-        act = "" if show in ("builtin", "nextdns") else button(ctx, "/action", "Show in Other sites", [("op", "unhide"), ("domain", r["domain"]), ("back", f"/hidden?show={show}")], "small")
+        act = "" if show in ("builtin", "nextdns") else button(ctx, "/action", "Show in Other sites", [("op", "unhide"), ("domain", r["domain"]), ("back", back)], "small")
         note = {"never_block": "Big platform — never blocked automatically", "already_blocked_in_nextdns": "Already blocked by your NextDNS list"}.get(r["reason"] or "", "")
-        return f'<tr>{site(r)}{what(r) if show != "builtin" else f"<td class=mut>{note}</td>"}{visited(r)}<td>{act}</td></tr>'
+        return f'<tr>{site(r)}{f"<td class=mut>{note}</td>" if show == "builtin" else ""}{visited(r)}<td>{act}</td></tr>'
     lead = ("Things Autoguard doesn’t bother you with: background services (ad and tracking servers, app back-ends, load balancers — "
             "not websites a person opens; Autoguard still checks them for problems), sites your NextDNS rules (porn, gambling, "
             "bedtime…) already block, and big platforms like Google or WhatsApp.")
-    return simple_list(ctx, "/hidden", "Hidden sites", lead, where, "last_seen DESC", ["Site", "What it is", "Last visited", ""], row,
-                       "Nothing here.", top=tabs("/hidden", show, HIDDEN_TABS), keep={"show": show})[0]
+    cols = ["Site", *(["Note"] if show == "builtin" else []), "Last visited", ""]
+    return simple_list(ctx, "/hidden", "Hidden sites", lead, where, "last_seen DESC", cols, row, "Nothing here.",
+                       keep={"show": show}, left=tabs("/hidden", show, HIDDEN_TABS))[0]
 
 def allowed(ctx):
+    back = here(ctx)
     def row(r, tl, profs):
         nd = r["reason"] == "nextdns_allowlist"
         act = ('<span class="mut">Remove it in NextDNS (Allowlist)</span>' if nd else
-               button(ctx, "/action", "Remove", [("op", "unfine"), ("domain", r["domain"]), ("back", "/allowed")], "small", "Autoguard will check it again"))
+               button(ctx, "/action", "Remove", [("op", "unfine"), ("domain", r["domain"]), ("back", back)], "small", "Autoguard will check it again"))
         src = '<span class="tag nd">From your NextDNS allowlist</span>' if nd else "You said it’s fine"
-        return (f'<tr>{site(r)}{what(r)}<td>{src}'
+        return (f'<tr>{site(r)}<td>{src}'
                 f'<div class="mut">{ago(r["decided_at"])}</div></td><td>{act}</td></tr>')
     add = (f'<form method="post" action="/action" class="row" style="margin-bottom:14px">{csrf(ctx)}<input type="hidden" name="op" value="fine_add">'
            '<input type="hidden" name="back" value="/allowed"><input type="text" name="domain" placeholder="school-site.com" style="max-width:260px" required>'
            '<button class="ok">Add a site you know is fine</button></form>')
     return simple_list(ctx, "/allowed", "Fine sites", "Sites you’ve said are fine. Autoguard never blocks these and doesn’t ask the AI about them. "
                        "Add your children’s school sites, clubs and anything else you trust.", "verdict='owner_ok'", "decided_at DESC",
-                       ["Site", "What it is", "Why it’s here", ""], row, "None yet.", top=add)[0]
+                       ["Site", "Why it’s here", ""], row, "None yet.", top=add)[0]
+
 
 ACT = {"block": "Blocked", "unblock": "Allowed", "mark_ok": "Marked fine", "fine_add": "Added to fine sites", "unfine": "Removed from fine sites",
        "bulk_ok": "Marked fine", "hide": "Hid", "unhide": "Unhid", "topic": "Changed what to block", "devices": "Changed devices",
@@ -494,7 +608,7 @@ def pref_fields(ctx, include_lookback):
 # ── settings ────────────────────────────────────────────────────────────────
 def settings_page(ctx):
     con = ctx["con"]; r = ctx.get("result") or {}; v = lambda k: esc(S.get(con, k))
-    sec = lambda sid, title, hint, inner, submit="Save": (
+    sec = lambda sid, title, hint, inner, submit='<button class="primary">Save</button>': (
         f'<section id="{sid}"><h2>{title}</h2><p class="hint">{hint}</p><form method="post" action="/settings">{csrf(ctx)}'
         f'<input type="hidden" name="section" value="{sid}">{inner}<div class="row">{submit}</div></form></section>')
     nd = r.get("nextdns")
@@ -521,8 +635,13 @@ def settings_page(ctx):
                     f'<div class="field"><label>Never block these (one per line)</label><textarea name="never_block_extra" rows="4" placeholder="school.example.org">{v("never_block_extra")}</textarea>'
                     '<span class="mut">Added to the built-in list of big platforms (Google, Apple, Microsoft, Meta, WhatsApp, Discord, YouTube, ChatGPT …) and your NextDNS allowlist, which are never auto-blocked.</span></div>'))
     tok = r.get("token")
-    body.append(sec("api", "API token", "For scripts: <code>GET /api/status.json</code> and <code>GET /api/denylist.json</code> with header "
-                    "<code>Authorization: Bearer &lt;token&gt;</code>.",
+    body.append(sec("api", "Connect other programs (optional)",
+                    "<b>Most families never need this.</b> The token is a password for other programs on your network — a home "
+                    "dashboard such as Home Assistant, or your own script — so they can <b>read</b> Autoguard’s status and the list of "
+                    "blocked sites. It can’t change anything. Leave it alone unless you’re connecting something."
+                    "<details style='margin-top:8px'><summary>Technical details</summary><p class='mut'><code>GET /api/status.json</code> and "
+                    "<code>GET /api/denylist.json</code> with header <code>Authorization: Bearer &lt;token&gt;</code>. Generating a new "
+                    "token stops the old one working.</p></details>",
                     (f'<div class="banner good">New token — copy it now, it won’t be shown again:<br><code style="user-select:all">{esc(tok)}</code></div>' if tok else
                      f'<p>Current token: <code>{esc(S.masked(con, "api_token") or "none")}</code>{" (from environment)" if S.source(con, "api_token") == "environment" else ""}</p>'),
                     '<button name="do" value="regenerate">Generate a new token</button>' if S.source(con, "api_token") != "environment" else ""))
@@ -531,7 +650,7 @@ def settings_page(ctx):
 
 # ── login + setup wizard ────────────────────────────────────────────────────
 def card(title, inner, steps=""):
-    return doc(title, f'<div class="setup"><h1 style="margin-bottom:14px">🛡️ Autoguard</h1>{steps}<section>{inner}</section></div>')
+    return doc(title, f'<div class="setup"><div class="brand">{LOGO}Autoguard</div>{steps}<section>{inner}</section></div>')
 
 def login(next_url="/", err=""):
     return card("Log in", (f'<div class="banner bad">{esc(err)}</div>' if err else "")

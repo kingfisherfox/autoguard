@@ -5,7 +5,7 @@
 autoguard/            the app (Python 3.12 stdlib only)
   __main__.py         CLI: web (default) · scan · create-user · reset-password · backup · restore
   web.py              HTTP server: routing, login/session gates, setup wizard, all writes, JSON API
-  views.py            HTML for every page (parent-facing wording lives here)
+  views.py            HTML for every page (parent-facing wording, design CSS, grouped lists: listing → table)
   scan.py             one check: import NextDNS lists → read logs → triage → enrich → AI → block → verify
   guard.py            code-owned guardrails: never-block list, shared-hosting keys, website vs background, thresholds
   llm.py              OpenAI-compatible AI client: JSON modes + fallback, robust parsing, connection test

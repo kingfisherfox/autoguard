@@ -43,6 +43,27 @@ MIGRATIONS = [
     ("domains", "last_blocked", "ALTER TABLE domains ADD COLUMN last_blocked INTEGER NOT NULL DEFAULT 0", None),
     ("domains", "kind_by", "ALTER TABLE domains ADD COLUMN kind_by TEXT",   # ai | guess — guesses on AI-checkable rows get redone
      "UPDATE domains SET kind=NULL WHERE verdict IN ('clean','imported')"),
+    ("domains", "category", "ALTER TABLE domains ADD COLUMN category TEXT", None),   # CATEGORIES id — display grouping only
+    ("domains", "about", "ALTER TABLE domains ADD COLUMN about TEXT", None),         # AI one-liner: what it is, who runs it
+]
+
+# Display grouping for every list page. The AI picks one for each site it already sees; no rule reads it (never control
+# flow). Sites the AI must never see (fine, hidden, big platforms) stay NULL → shown as "Not sorted". (id, label, AI hint)
+CATEGORIES = [
+    ("games", "Games", "games, game stores, mods, game wikis"),
+    ("video", "Video & streaming", "video, live streaming, TV, films"),
+    ("social", "Social & chat", "social networks, forums, messaging, chat"),
+    ("ai", "AI tools", "AI chat, AI image or writing tools"),
+    ("learning", "School & learning", "school, homework, courses, reference, encyclopedias"),
+    ("news", "News & reading", "news, magazines, blogs, books, comics"),
+    ("music", "Music & audio", "music, podcasts, audio"),
+    ("shopping", "Shopping", "shops, marketplaces, deals"),
+    ("hobbies", "Hobbies & lifestyle", "sport, food, travel, fashion, crafts, pets"),
+    ("tools", "Everyday tools", "search, email, maps, office, banking, utilities"),
+    ("adult", "Adult & risky", "porn, gambling, dating, piracy, hate"),
+    ("ads", "Ads & tracking", "advertising, analytics, tracking, telemetry"),
+    ("services", "App & device services", "CDNs, cloud, APIs, app back-ends, OS or device updates"),
+    ("other", "Other", "anything else"),
 ]
 
 # Seed topics — editable on "What to block". Deliberately narrow: the NextDNS categories already cover porn,

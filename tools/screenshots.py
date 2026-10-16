@@ -8,7 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); sys.path.ins
 OUT = os.path.join(ROOT, "docs", "images")
 CHROME = os.environ.get("CHROME") or next((p for p in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
                                                        shutil.which("google-chrome") or "", shutil.which("chromium") or "") if p and os.path.exists(p)), None)
-BG = (246, 246, 243)
+BG = (244, 246, 249)   # views.CSS --bg; the white sidebar (left 240px) is ignored when trimming
 
 tmp = tempfile.mkdtemp(); os.environ["AUTOGUARD_DB"] = os.path.join(tmp, "demo.db")
 from autoguard import config, auth  # noqa: E402
@@ -38,8 +38,9 @@ def shot(name, html, height=1500, max_h=None, width=1280):
                     f"--window-size={width},{height}", f"--screenshot={png}", "file://" + f], capture_output=True, timeout=60)
     from PIL import Image
     im = Image.open(png).convert("RGB"); px = im.load(); w, h = im.size; bottom = h - 1
-    while bottom > 200 and all(px[x, bottom] == BG for x in range(0, w, 7)): bottom -= 1
-    im.crop((0, 0, w, min(bottom + 24, max_h or h))).save(png, optimize=True)
+    while bottom > 200 and all(px[x, bottom] == BG for x in range(260, w, 7)): bottom -= 1
+    floor = 620 if 'class="side"' in html else 0   # never cut the sidebar navigation in half
+    im.crop((0, 0, w, min(max(bottom + 24, floor), max_h or h))).save(png, optimize=True)
     print("SHOT", name, Image.open(png).size)
 
 def main():

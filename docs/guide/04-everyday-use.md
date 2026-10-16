@@ -5,8 +5,21 @@
 Autoguard is built so you only look at what might be a problem. In practice: open **Home** now and then, deal with
 anything in **To check**, and leave the rest.
 
-The menu along the top: **Home · Blocked · To check · Other sites · Fine sites · Settings**. When something needs
-your decision, **To check** shows an orange number.
+The menu on the left: **Home · Blocked · To check · Other sites · Fine sites · Hidden sites**, then **History** and
+**Checks** under *Activity*, and **Connections · What to block · People** under *Settings*. When something needs
+your decision, **To check** shows an orange number. (On a phone the menu sits along the top.)
+
+## What every list shows
+
+- **What the site is.** Under each address: the site's own page title and its short description. Background
+  services have no page to read, so the AI writes a one-line summary instead, marked **✦** (for example
+  *"✦ Advertising network run by Google"*).
+- **Groups.** Sites are sorted into groups such as *Games*, *Social & chat*, *School & learning*, *Ads & tracking*
+  or *App & device services*. The group buttons above the list show how many are in each; click one to see only
+  that group, or **All** for everything (still sorted into sections). The AI picks the group while it checks a
+  site. Sites the AI never sees (your Fine sites, hidden sites, big platforms) show as **Not sorted**.
+- **Search** matches the address, the page title and the summary, so *"chess"* finds a chess site even when its
+  address doesn't say so.
 
 ## Home
 
@@ -16,7 +29,7 @@ your decision, **To check** shows an orange number.
   the last check had a problem the bar turns red and explains it. Sites already blocked stay blocked either way.
 - **The yellow bar** appears when sites need your decision, with a link to them.
 - **The four boxes**: sites blocked, new blocks this week, sites to check, and your fine sites. Each is a link.
-- **Recently blocked by Autoguard** lists the newest automatic blocks: the site, what it is (its page title), why
+- **Recently blocked by Autoguard** lists the newest automatic blocks: the site, what it is (its page title and description), why
   it was blocked and when it was last visited.
 - **Check now** runs a check straight away instead of waiting for the schedule.
 
@@ -24,11 +37,12 @@ your decision, **To check** shows an orange number.
 
 ![Blocked sites](../images/07-blocked.png)
 
-Every site that can't be opened on your children's devices, newest first, 50 per page.
+Every site that can't be opened on your children's devices, grouped, newest first within each group, 50 per page.
 
 - **Filters** across the top: *Everything*, *Found by Autoguard*, *Blocked by you*, and *On your NextDNS list*
   (sites that were already on your NextDNS block lists).
-- **Search** finds a site by name.
+- **Device** buttons show what's blocked on one device only, with a count for each (*All devices* shows
+  everything). They combine with the filters, groups and search.
 - **Why it's blocked** shows the topic and how sure the AI was (*possibly*, *likely*, *very likely*) with its
   one-line reason.
 - **Last visited** shows when, how many times, and how many of those were at night (if you set a bedtime).
@@ -81,7 +95,7 @@ you're curious or want to double-check. Per site:
 
 Ad servers, app back-ends, load balancers and similar background services don't appear here. Autoguard sorts them
 out automatically (anything without a homepage you could open counts as one); you'll find them under
-**Settings → Hidden sites**.
+**Hidden sites**.
 
 ## Fine sites
 
@@ -93,5 +107,20 @@ Sites you trust. Autoguard never blocks them and doesn't send them to the AI.
   know is fine**.
 - **Remove** takes a site off the list; Autoguard will check it again next time it's visited.
 - Sites marked *From your NextDNS allowlist* come from NextDNS. To remove those, edit the Allowlist in NextDNS.
+
+## Hidden sites
+
+![Hidden sites](../images/12-hidden-sites.png)
+
+Things Autoguard doesn't bother you with, in four tabs:
+
+- **Hidden by you**: sites you hid from Other sites.
+- **Background services**: ad and tracking servers, app back-ends, content networks, load balancers. Each one
+  carries the AI's one-line summary (**✦**) of what it is and who runs it, so you don't have to look it up.
+- **Blocked by your NextDNS rules**: sites NextDNS itself already blocks (porn category, bedtime and so on).
+- **Big platforms**: the never-block list.
+
+Hidden doesn't mean ignored. If a background service belongs to, say, an AI-girlfriend app, it's still flagged and
+blocked. **Show in Other sites** moves something back if you'd rather see it.
 
 [Next: Settings →](05-settings.md)

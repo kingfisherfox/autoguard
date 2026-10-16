@@ -113,11 +113,18 @@ def triage(con, live, cfg):
 def classify_all(con, todo, st, cfg, rid):
     # described for the parent (topic, reason, kind) — never re-decided: imported entries, and sites judged before
     # Autoguard knew websites from background services
+    # … and given a group + one-liner (category/about) if they predate that. Only rows the AI may see: fine, hidden,
+    # big-platform and allowlist rows are never sent (R2/R3/R12/R13) — they get the homepage title/description only.
     describe = [r[0] for r in con.execute("SELECT domain FROM domains WHERE (verdict='imported' AND model IS NULL) OR "
-                                          "(verdict IN ('clean','imported') AND kind IS NULL) ORDER BY hits DESC LIMIT 400")]
+                                          "(verdict IN ('clean','imported') AND kind IS NULL) OR "
+                                          "(category IS NULL AND verdict IN ('clean','imported','review','block')) "
+                                          "ORDER BY hits DESC LIMIT 400")]
     describe = [d for d in describe if d not in set(todo)]
     judge, todo = set(todo), list(todo) + describe
     need = [d for d in todo if not con.execute("SELECT fetched_at FROM domains WHERE domain=?", (d,)).fetchone()[0]]
+    # every site a parent can see shows what it is — fetch homepages never fetched (no AI involved)
+    need += [r[0] for r in con.execute("SELECT domain FROM domains WHERE fetched_at IS NULL AND verdict!='pending' "
+                                       "ORDER BY hits DESC LIMIT 200") if r[0] not in set(need)]
     if need: progress(con, rid, f"Looking at {len(need)} websites", st)
     for d, e in enrich.fetch_many(need).items():
         con.execute("UPDATE domains SET title=?, description=?, fetch_error=?, fetched_at=? WHERE domain=?",
@@ -135,7 +142,9 @@ def classify_all(con, todo, st, cfg, rid):
         res = llm.classify(batch, topics, cfg, ok, bl)    # LLMError → run marked llm_error; rest stays pending
         titles = {r["domain"]: r["title"] for r in batch}
         for d, (topic, conf, reason, *rest) in res.items():
-            ai_kind = rest[0] if rest else None
+            ai_kind, cat, about = (*rest, None, None, None)[:3]
+            # display only; an answered site without a valid group becomes "other" so it is never re-asked
+            con.execute("UPDATE domains SET category=?, about=COALESCE(?, about) WHERE domain=?", (cat or "other", about, d))
             kind, by, t = guard.kind_of(ai_kind, titles.get(d)), "ai" if ai_kind else "guess", None if topic == "none" else topic
             if d not in judge:
                 con.execute("UPDATE domains SET topic=?, confidence=?, reason=?, model=? WHERE domain=? AND verdict='imported'",

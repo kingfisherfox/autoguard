@@ -15,7 +15,11 @@ everything configured in a browser wizard. Human docs: `README.md` + `docs/guide
 ## Information Flow
 - **Imports:** every check mirrors each enabled device's NextDNS denylist into `blocks` (source `nextdns`, per
   device, never spread, never re-decided; removed in NextDNS ⇒ shown unblocked, not re-added) and its allowlist into
-  Fine (`owner_ok`, reason `nextdns_allowlist`). Imported sites get an AI description (topic/kind) only.
+  Fine (`owner_ok`, reason `nextdns_allowlist`). Imported sites get an AI description (topic/kind/group/about) only.
+- **Descriptions:** every check fetches the homepage title/description of any shown site never fetched (≤200/check,
+  no AI). Rows judged before groups existed (clean/imported/review/block) are re-sent once for group + about only;
+  an answer without a valid group stores `other` so nothing is asked twice. Fine, hidden, big-platform and allowlist
+  rows are never sent (R2/R3/R12/R13).
 - **Inputs:** NextDNS API (`GET /profiles`, `/profiles/:id/logs` by watermark, deny/allowlists), homepage
   title/description (public addresses only), AI verdicts (`POST {base}/chat/completions`).
 - **Outputs:** per-domain NextDNS denylist children (`POST|PATCH|DELETE /profiles/:id/denylist/<domain>`; never a
@@ -31,6 +35,10 @@ everything configured in a browser wizard. Human docs: `README.md` + `docs/guide
   under Hidden sites. Blocked/To check never filter by kind.
 - **held** — block verdict over `max_blocks_per_run`; blocked next scan.
 - **trial mode** — `dry_run=1`: everything recorded, nothing written to NextDNS.
+- **group (category)** — `domains.category`, one of `db.CATEGORIES`, picked by the AI in the same reply as the verdict.
+  Display only (list sections + filter chips); no rule reads it. Sites the AI may not see stay NULL ("Not sorted").
+- **about** — the AI's ≤12-word plain summary (what it is, who runs it), shown with ✦ when the homepage title or
+  description is missing — the only explanation a parent gets for background services.
 
 ## Key Files
 - `autoguard/scan.py` — pipeline: sync profiles → pull → triage → enrich → classify → apply/reconcile/verify → record

@@ -2,7 +2,8 @@
 
 [← Everyday use](04-everyday-use.md) · Next: [Looking after it →](06-looking-after-it.md)
 
-**Settings** has six tabs: **Connections · What to block · People · Hidden sites · History · Checks**.
+In the left-hand menu, **Settings** has **Connections · What to block · People**, and **Activity** has
+**History · Checks**. (Hidden sites moved to the main menu — see [Everyday use](04-everyday-use.md#hidden-sites).)
 
 ## Connections
 
@@ -58,11 +59,15 @@ to work (Google, Apple, Microsoft, Meta and WhatsApp, Discord, YouTube, ChatGPT,
 everything on your NextDNS allowlist and your Fine sites. If you want one of those platforms gone, use NextDNS's
 Parental Control → Apps, or block it yourself on the Blocked page.
 
-### API token
+### Connect other programs (optional)
 
-For people who want to connect scripts. `GET /api/status.json` and `GET /api/denylist.json` with the header
-`Authorization: Bearer <token>` return Autoguard's status and its current blocks per device. **Generate a new
-token** replaces the old one, which stops working immediately. The new token is shown once.
+**Most families never need this.** The token is a password for other programs on your network, such as a home
+dashboard like Home Assistant or your own script. With it they can **read** Autoguard's status and the list of
+blocked sites per device; they can't change anything. If you're not connecting anything, ignore it.
+
+Technical details: `GET /api/status.json` and `GET /api/denylist.json` with the header
+`Authorization: Bearer <token>`. **Generate a new token** replaces the old one, which stops working immediately.
+The new token is shown once.
 
 ## What to block
 
@@ -90,20 +95,6 @@ adult content (backup)* topic only catches what those miss.
 Add the other parent with a username and a password of at least 10 characters. Everyone listed can see and change
 everything, so don't add the children. **Change my password** keeps you logged in on this browser and logs you out
 everywhere else. **Remove** deletes another person's login (you can't remove yourself or the last person).
-
-## Hidden sites
-
-![Hidden sites](../images/12-hidden-sites.png)
-
-Things Autoguard doesn't bother you with, in four tabs:
-
-- **Hidden by you**: sites you hid from Other sites.
-- **Background services**: ad and tracking servers, app back-ends, content networks, load balancers.
-- **Blocked by your NextDNS rules**: sites NextDNS itself already blocks (porn category, bedtime and so on).
-- **Big platforms**: the never-block list.
-
-Hidden doesn't mean ignored. If a background service belongs to, say, an AI-girlfriend app, it's still flagged and
-blocked. **Show in Other sites** moves something back if you'd rather see it.
 
 ## History
 

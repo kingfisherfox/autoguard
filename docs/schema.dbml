@@ -56,6 +56,8 @@ Table autoguard.domains {
   kind text [note: 'website|infrastructure — parents only see websites outside Blocked/To check']
   kind_by text [note: 'ai|guess — guesses on clean/imported rows are re-asked']
   last_blocked integer [not null, default: 0, note: '1 = newest lookup was blocked by NextDNS rules → Hidden']
+  category text [note: 'db.CATEGORIES id (games|video|social|ai|learning|news|music|shopping|hobbies|tools|adult|ads|services|other); AI-picked, display grouping only; NULL = never sent to the AI (fine/hidden/big platform) → "Not sorted"']
+  about text [note: 'AI one-liner for parents: what it is + who runs it (shown when the homepage says little); display only']
   topic text [ref: > autoguard.topics.id]
   confidence real
   reason text

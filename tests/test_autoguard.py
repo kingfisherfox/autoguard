@@ -45,6 +45,8 @@ def fake_llm(verdicts):
         return {i["domain"]: (*verdicts.get(i["domain"], ("none", 0.95)), "test") for i in items}
     f.calls = calls; return f
 
+REAL = (llm.classify, llm.test, enrich.fetch_many)   # Base tests monkeypatch these; restored so test order never matters
+
 class Base(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); config.DB_PATH = os.path.join(self.tmp.name, "ag.db")
@@ -52,7 +54,7 @@ class Base(unittest.TestCase):
         self.nd = FakeNX(["aaa111", "bbb222"])
         nextdns.client = lambda key: self.nd if key.startswith("nd-good") else BadNX()
         for k in S.ENV.values(): os.environ.pop(k, None)
-    def tearDown(self): self.tmp.cleanup()
+    def tearDown(self): self.tmp.cleanup(); llm.classify, llm.test, enrich.fetch_many = REAL
     def con(self): return db.connect()
     def configure(self, pids=("aaa111", "bbb222"), **extra):
         con = self.con()
@@ -263,7 +265,45 @@ class TestLLM(unittest.TestCase):
             {"domain": "a.com", "topic": "made_up", "confidence": 1, "reason": ""},
             {"domain": "b.com", "topic": "redpill", "confidence": "7", "reason": ""}]})}}]}
         out = llm.classify([{"domain": "a.com"}, {"domain": "b.com"}], [{"id": "redpill", "description": "d"}], dict(self.CFG, llm_json_mode="prompt"))
-        self.assertEqual(out, {"b.com": ("redpill", 1.0, "", None)})
+        self.assertEqual(out, {"b.com": ("redpill", 1.0, "", None, None, None)})
+
+    def test_group_and_one_liner_are_parsed_and_unknown_groups_dropped(self):
+        # display-only fields: a made-up group must not leak into the UI; the one-liner is trimmed to one short line
+        llm._post = lambda cfg, body: {"choices": [{"message": {"content": json.dumps({"results": [
+            {"domain": "a.com", "topic": "none", "confidence": 1, "kind": "infrastructure", "category": "ads",
+             "about": "  Google's   advertising\nnetwork ", "reason": ""},
+            {"domain": "b.com", "topic": "none", "confidence": 1, "category": "made_up", "reason": ""}]})}}]}
+        out = llm.classify([{"domain": "a.com"}, {"domain": "b.com"}], [{"id": "redpill", "description": "d"}], dict(self.CFG, llm_json_mode="prompt"))
+        self.assertEqual(out["a.com"][4:], ("ads", "Google's advertising network"))
+        self.assertEqual(out["b.com"][4:], (None, None))
+
+class TestDescriptions(Base):
+    """Every site a parent sees says what it is; grouping comes from the AI only for sites the AI may already see."""
+    def test_ai_group_and_one_liner_are_stored_and_an_ungrouped_answer_is_not_re_asked(self):
+        self.configure(); self.nd.visit("aaa111", "ads-x.example"); self.nd.visit("aaa111", "plain.example")
+        f = llm.classify = lambda items, *a, **k: f.log.append([i["domain"] for i in items]) or {
+            i["domain"]: ("none", 0.9, "", "infrastructure", "ads" if i["domain"] == "ads-x.example" else None,
+                          "Ad network" if i["domain"] == "ads-x.example" else None) for i in items}
+        f.log = []; scan.run("test")
+        con = self.con(); get = lambda d: tuple(con.execute("SELECT category, about FROM domains WHERE domain=?", (d,)).fetchone())
+        self.assertEqual(get("ads-x.example"), ("ads", "Ad network"))
+        self.assertEqual(get("plain.example"), ("other", None))       # answered without a group → "other", never re-asked
+        scan.run("test"); self.assertEqual(len(f.log), 1)
+
+    def test_sites_judged_before_groups_existed_are_described_once(self):
+        self.configure(); self.nd.visit("aaa111", "old.example"); llm.classify = fake_llm({}); scan.run("test")
+        con = self.con(); con.execute("UPDATE domains SET category=NULL"); con.commit()
+        f = llm.classify = fake_llm({}); scan.run("test"); scan.run("test")
+        self.assertEqual(sum(c.count("old.example") for c in f.calls), 1)
+        self.assertEqual(self.con().execute("SELECT verdict FROM domains WHERE domain='old.example'").fetchone()[0], "clean")
+
+    def test_fine_sites_get_their_homepage_described_without_asking_the_ai(self):
+        self.configure(); con = self.con(); actions.fine_add(con, "myschool.example", "mum"); con.commit()
+        enrich.fetch_many = lambda ds: {d: {"title": "Hillside School", "description": "Pupil portal", "fetch_error": None} for d in ds}
+        f = llm.classify = fake_llm({}); scan.run("test")
+        row = self.con().execute("SELECT title, description, category FROM domains WHERE domain='myschool.example'").fetchone()
+        self.assertEqual(tuple(row), ("Hillside School", "Pupil portal", None))
+        self.assertEqual(sum(f.calls, []), [])                       # R12 holds: fine sites never go to the AI
 
 class TestSafety(unittest.TestCase):
     def test_enrich_never_fetches_private_addresses(self):
@@ -438,6 +478,39 @@ class Web(Base):
             html = self.req("/setup?step=nextdns")[2]; self.assertIn("Provided by the server environment", html); self.assertNotIn(ND_KEY, html)
             code, _, html = self.post("/setup", {"step": "nextdns"}, "/setup"); self.assertIn("Kid aaa111", html)
         finally: os.environ.pop("NEXTDNS_API_KEY")
+
+    def test_blocked_sites_can_be_filtered_by_device(self):
+        self.setup_all(); con = self.con()
+        db.ensure_domain(con, "only-a.chat"); db.set_block(con, "only-a.chat", "aaa111", "blocked", "owner")
+        db.ensure_domain(con, "only-b.chat"); db.set_block(con, "only-b.chat", "bbb222", "blocked", "owner"); con.commit()
+        a, b = self.req("/blocked?device=aaa111")[2], self.req("/blocked?device=bbb222")[2]
+        self.assertIn("only-a.chat", a); self.assertNotIn("only-b.chat", a)
+        self.assertIn("only-b.chat", b); self.assertNotIn("only-a.chat", b)
+        both = self.req("/blocked?device=nope")[2]                    # unknown device → everything, not an error
+        self.assertIn("only-a.chat", both); self.assertIn("only-b.chat", both)
+
+    def test_lists_are_grouped_and_say_what_each_site_is(self):
+        self.setup_all(); con = self.con()
+        for d, cat, title, desc, about in (("chess.example", "games", "Chess Club", "Play chess online", None),
+                                           ("news.example", "news", "Daily News", None, None),
+                                           ("tracker.example", "ads", None, None, "Advertising network")):
+            db.ensure_domain(con, d, seen=True)
+            con.execute("UPDATE domains SET verdict='clean', kind=?, category=?, title=?, description=?, about=?, hits=3 WHERE domain=?",
+                        ("infrastructure" if d == "tracker.example" else "website", cat, title, desc, about, d))
+        con.commit()
+        other = self.req("/checked")[2]
+        self.assertIn("Play chess online", other)                    # meta description shown, not just the title
+        self.assertLess(other.index(">Games<"), other.index(">News &amp; reading<"))   # grouped, in a fixed order
+        self.assertNotIn("Daily News", self.req("/checked?cat=games")[2])
+        self.assertIn("chess.example", self.req("/checked?q=chess+club")[2])            # search matches what it is
+        self.assertIn("Advertising network", self.req("/hidden?show=background")[2])    # background: the AI one-liner
+
+    def test_every_settings_form_has_a_save_button(self):
+        # regression: Schedule and Blocking rules once rendered "Save" as plain text — the parent had no way to submit
+        html = self.setup_all() and self.req("/settings")[2]
+        for sid in ("nextdns", "devices", "ai", "schedule", "rules"):
+            form = html.split(f'id="{sid}"', 1)[1].split("</form>", 1)[0]
+            self.assertIn("<button", form, sid)
 
     def test_users_can_be_added_and_password_changed(self):
         self.setup_all()

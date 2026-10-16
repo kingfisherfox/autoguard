@@ -12,7 +12,7 @@ terminal, the exact command is given.
 2. [Installing Autoguard](02-install.md): on a Linux box, a Raspberry Pi, a Synology or Unraid NAS, or a desktop computer.
 3. [First-time setup](03-first-time-setup.md): the five setup steps, one screen at a time.
 4. [Everyday use](04-everyday-use.md): Home, Blocked, To check, Other sites and Fine sites.
-5. [Settings](05-settings.md): connections, what to block, people, hidden sites, history and checks.
+5. [Settings](05-settings.md): connections, what to block, people, history and checks.
 6. [Looking after it](06-looking-after-it.md): updates, backups, passwords, remote access, troubleshooting and FAQ.
 
 ## The short version

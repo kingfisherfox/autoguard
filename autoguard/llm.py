@@ -5,10 +5,11 @@
 #   Anthropic's compat endpoint ignores response_format, so its preset uses prompt mode. The working combo per
 #   (base_url, model) is cached for the process lifetime.
 # INPUTS: domains + evidence, active topics, parent's guidance + past decisions.
-# OUTPUT: {domain: (topic, conf, reason, kind|None)}.
+# OUTPUT: {domain: (topic, conf, reason, kind|None, category|None, about|None)}. category/about are display-only
+#         (grouping + a plain one-liner for sites with no homepage); no rule reads them.
 #         Domains missing from the reply stay pending and are retried next scan.
 import json, re, socket, sys, time, urllib.error, urllib.request
-from . import config
+from . import config, db
 
 class LLMError(Exception):
     def __init__(self, msg, code=None): super().__init__(msg); self.code = code
@@ -16,16 +17,22 @@ class LLMError(Exception):
 FIXED = ("Ads, analytics, CDNs, telemetry, app or OS infrastructure, and parked or unknown domains with no evidence are "
          "always none.")
 SHAPE = ('Reply with ONLY a JSON object, no markdown or prose: {"results": [{"domain": "<domain>", "topic": "<topic id or '
-         'none>", "confidence": <number 0-1>, "kind": "website|infrastructure", "reason": "<max 20 words citing the evidence>"}]} '
-         '— one entry per domain.')
+         'none>", "confidence": <number 0-1>, "kind": "website|infrastructure", "category": "<category id>", '
+         '"about": "<max 12 words>", "reason": "<max 20 words citing the evidence>"}]} — one entry per domain.')
 KIND = ('kind: "website" if it is a site or app a person would recognise and open; "infrastructure" if it is a background '
         'service — CDN, API, ads, analytics, tracking, telemetry, load balancer, update or app back-end server.')
+CATS = [c for c, _, _ in db.CATEGORIES]
+DESCRIBE = ("category: what the site is, one of: " + "; ".join(f"{c} ({hint})" for c, _, hint in db.CATEGORIES) + ".\n"
+            'about: max 12 plain words for a parent who is not technical: what it is and who runs it, e.g. '
+            '"Google\'s advertising network" or "Game servers for Roblox". Use what you know about the company too.')
 _WORKS = {}   # (base_url, model) -> (mode, send_temperature)
 
 def schema(topic_ids):
-    item = {"type": "object", "additionalProperties": False, "required": ["domain", "topic", "confidence", "kind", "reason"],
+    item = {"type": "object", "additionalProperties": False,
+            "required": ["domain", "topic", "confidence", "kind", "category", "about", "reason"],
             "properties": {"domain": {"type": "string"}, "topic": {"type": "string", "enum": [*topic_ids, "none"]},
                            "confidence": {"type": "number"}, "kind": {"type": "string", "enum": ["website", "infrastructure"]},
+                           "category": {"type": "string", "enum": CATS}, "about": {"type": "string"},
                            "reason": {"type": "string"}}}
     return {"type": "object", "additionalProperties": False, "required": ["results"],
             "properties": {"results": {"type": "array", "items": item}}}
@@ -37,7 +44,7 @@ def messages(topics, items, guidance, ok=(), bl=()):
             + f"\nThe parent says these are FINE (topic none): {guidance}\n{FIXED}\n"
             "Evidence order: page title/description first, then the sample hostnames; the domain name alone is weak "
             "evidence (names mislead). confidence = probability that the site's MAIN purpose is that topic. Be "
-            "conservative: if unsure, lower the confidence.\n" + KIND)
+            "conservative: if unsure, lower the confidence.\n" + KIND + "\n" + DESCRIBE)
     if ok: sys_ += "\nThe parent reviewed and ALLOWED: " + ", ".join(ok)
     if bl: sys_ += "\nThe parent manually BLOCKED: " + ", ".join(bl)
     rows = [{"domain": i["domain"], "hosts": list(i.get("samples") or [])[:3], "title": i.get("title"),
@@ -124,7 +131,9 @@ def classify(items, topics, cfg, ok=(), bl=()):
             try: c = max(0.0, min(1.0, float(r.get("confidence") or 0)))
             except (TypeError, ValueError): c = 0.0
             k = r.get("kind") if r.get("kind") in ("website", "infrastructure") else None
-            out[d] = (r["topic"], c, str(r.get("reason", ""))[:300], k)
+            cat = r.get("category") if r.get("category") in CATS else None
+            about = re.sub(r"\s+", " ", str(r.get("about") or "")).strip()[:160] or None
+            out[d] = (r["topic"], c, str(r.get("reason", ""))[:300], k, cat, about)
     return out
 
 # Connection test: 3 synthetic sites with unambiguous evidence (no network fetch needed).
