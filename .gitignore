@@ -7,3 +7,30 @@ data/
 __pycache__/
 *.pyc
 .DS_Store
+
+# secrets in any form (the template stays public)
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# backups and database copies (hold keys, password hashes and real family data)
+*.sqlite
+*.sqlite3
+*.bak
+backups/
+autoguard-backups/
+
+# local agent / developer tooling — internal notes, absolute paths, telemetry
+docs/changelog/
+docs/functions/
+plans/
+.codegraph/
+.pi/craft.json
+.pi/telemetry/
+.pi/TIMELINE.md
+.vscode/
+.idea/
+*.local
+*.log
